@@ -1,0 +1,3 @@
+[submodule "PhoenixSharp"]
+	path = PhoenixSharp
+	url = https://github.com/Mazyod/PhoenixSharp

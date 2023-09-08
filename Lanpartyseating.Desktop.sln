@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lanpartyseating.Desktop", "Lanpartyseating.Desktop\Lanpartyseating.Desktop.csproj", "{BCC8F40F-003C-44AD-A42D-678388B38A0E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phoenix", "PhoenixSharp\Phoenix\Phoenix.csproj", "{8D65DBEF-13D1-4C65-A7A6-A81B7565F371}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhoenixTests", "PhoenixSharp\PhoenixTests\PhoenixTests.csproj", "{D87C0B39-77E6-4932-847B-F53BE738AD94}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BCC8F40F-003C-44AD-A42D-678388B38A0E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCC8F40F-003C-44AD-A42D-678388B38A0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCC8F40F-003C-44AD-A42D-678388B38A0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCC8F40F-003C-44AD-A42D-678388B38A0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D65DBEF-13D1-4C65-A7A6-A81B7565F371}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D65DBEF-13D1-4C65-A7A6-A81B7565F371}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D65DBEF-13D1-4C65-A7A6-A81B7565F371}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D65DBEF-13D1-4C65-A7A6-A81B7565F371}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
