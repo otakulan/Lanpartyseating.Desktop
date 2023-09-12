@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Phoenix", "PhoenixSharp\Pho
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PhoenixTests", "PhoenixSharp\PhoenixTests\PhoenixTests.csproj", "{D87C0B39-77E6-4932-847B-F53BE738AD94}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lanpartyseating.Desktop.Tests", "Lanpartyseating.Desktop.Tests\Lanpartyseating.Desktop.Tests.csproj", "{8B549C98-F78C-422A-8C26-E1D7A0881CAD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D87C0B39-77E6-4932-847B-F53BE738AD94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B549C98-F78C-422A-8C26-E1D7A0881CAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B549C98-F78C-422A-8C26-E1D7A0881CAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B549C98-F78C-422A-8C26-E1D7A0881CAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B549C98-F78C-422A-8C26-E1D7A0881CAD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

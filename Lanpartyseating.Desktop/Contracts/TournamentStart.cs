@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
 
-namespace Lanpartyseating.Desktop;
+namespace Lanpartyseating.Desktop.Contracts;
 
-public class NewReservation
+public class TournamentStart
 {
     [JsonProperty("station_number")]
     public int StationNumber { get; init; }
