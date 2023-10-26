@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Lanpartyseating.Desktop.Config;
 using Lanpartyseating.Desktop.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
