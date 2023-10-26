@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Define the variables in "$(var.*) expressions" -->
+<?define Name = "Lanparty Seating Desktop Client" ?>
+<?define Manufacturer = "Otakuthon PC Gaming" ?>
+<?define Version = "1.0.0.0" ?>
+<?define UpgradeCode = "b7277c09-b011-4d40-8995-2093303e9f28" ?>
+
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+    <Package Name="$(Name)"
+             Manufacturer="$(Manufacturer)"
+             Version="$(Version)"
+             UpgradeCode="$(var.UpgradeCode)"
+             Compressed="true">
+
+        <Feature Id="MainApplication" Title="Main Application" Level="1">
+            <!-- Reference the component group inside the feature. -->
+            <ComponentGroupRef Id="MyFilesComponentGroup" />
+        </Feature>
+
+        <!-- Allow upgrades and prevent downgrades -->
+        <MajorUpgrade DowngradeErrorMessage="A later version of $(Name) is already installed. Setup will now exit." />
+
+        <StandardDirectory Id="TARGETDIR" />
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="INSTALLFOLDER" Name="$(var.Name)" />
+        </StandardDirectory>
+
+        <!-- The files inside this DirectoryRef are linked to
+             the Lanpartyseating.Desktop directory via INSTALLFOLDER -->
+        <DirectoryRef Id="INSTALLFOLDER">
+            
+            <!-- Create a single component which is the Lanpartyseating.Desktop.exe file -->
+            <Component Id="ServiceExecutable" Bitness="always64">
+
+                <File Source="..\Lanpartyseating.Desktop\bin\$(Configuration)\net7.0-windows\Lanpartyseating.Desktop.exe" />
+                
+                <!-- Remove all files from the INSTALLFOLDER on uninstall -->
+                <RemoveFile Id="ALLFILES" Name="*.*" On="both" />
+
+                <!-- Tell WiX to install the Service -->
+                <ServiceInstall Id="ServiceInstaller"
+                                Type="ownProcess"
+                                Name="Lanpartyseating.Desktop"
+                                DisplayName="Lanparty Seating Desktop Client"
+                                Description="A desktop client for the Lanparty Seating System"
+                                Start="auto"
+                                Account="LocalSystem"
+                                Interactive="no"
+                                ErrorControl="normal" />
+
+                <!-- Tell WiX to start the Service -->
+                <ServiceControl Id="StartService"
+                                Start="install"
+                                Stop="both"
+                                Remove="uninstall"
+                                Name="Lanpartyseating.Desktop"
+                                Wait="true" />
+            </Component>
+        </DirectoryRef>
+
+        <!-- Tell WiX to install the files -->
+        <Feature Id="Service" Title="Lanpartyseating.Desktop Setup" Level="1">
+            <ComponentRef Id="ServiceExecutable" />
+        </Feature>
+
+    </Package>
+</Wix>
