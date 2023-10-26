@@ -25,28 +25,30 @@ public class Callbacks
     public void NewReservation(Message payload)
     {
         var payloadObject = payload.Payload.Unbox<NewReservation>();
+        
         _logger.LogInformation($"New reservation created for station #{payloadObject.StationNumber}");
         if (!_utils.ForThisStation(payloadObject.StationNumber, Environment.MachineName)) return;
-        // return;
+        
         _utils.LoginInteractiveSession(_options.GamerAccountUsername, _options.GamerAccountPassword);
     }
     
     public void TournamentStart(Message payload)
     {
         var payloadObject = payload.Payload.Unbox<TournamentStart>();
+        
         _logger.LogInformation($"Tournament started for station #{payloadObject.StationNumber}");
         if (!_utils.ForThisStation(payloadObject.StationNumber, Environment.MachineName)) return;
-        // return;
+        
         _utils.LoginInteractiveSession(_options.TournamentAccountUsername, _options.TournamentAccountPassword);
     }
 
     public void CancelReservation(Message payload)
     {
         var payloadObject = payload.Payload.Unbox<CancelReservation>();
+        
         _logger.LogInformation($"Reservation cancelled for station #{payloadObject.StationNumber}");
         if (!_utils.ForThisStation(payloadObject.StationNumber, Environment.MachineName)) return;
-        // return;
-        // Log off the user
+        
         _utils.LogoffInteractiveSession();
     }
 }
