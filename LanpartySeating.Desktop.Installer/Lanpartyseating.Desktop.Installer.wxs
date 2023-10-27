@@ -1,37 +1,70 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 
-<!-- Define the variables in "$(var.*) expressions" -->
 <?define Name = "Lanparty Seating Desktop Client" ?>
+<?define FolderName = "Lanparty Seating" ?>
 <?define Manufacturer = "Otakuthon PC Gaming" ?>
-<?define Version = "1.0.0.0" ?>
-<?define UpgradeCode = "b7277c09-b011-4d40-8995-2093303e9f28" ?>
+<?define UpgradeCode = "{B7277C09-B011-4D40-8995-2093303E9F28}" ?>
 
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
     <Package Name="$(Name)"
              Manufacturer="$(Manufacturer)"
              Version="$(Version)"
-             UpgradeCode="$(var.UpgradeCode)"
+             UpgradeCode="$(UpgradeCode)"
              Compressed="true">
 
-        <Feature Id="MainApplication" Title="Main Application" Level="1">
+        <Media Id="1" Cabinet="application.cab" EmbedCab="yes" />
+
+        <Feature Id="MainApplication" Title="Lanpartyseating.Desktop Application" Level="1">
             <!-- Reference the component group inside the feature. -->
-            <ComponentGroupRef Id="MyFilesComponentGroup" />
+            <ComponentGroupRef Id="ApplicationFilesComponentGroup" />
+            <ComponentRef Id="ConfigPermissions" />
         </Feature>
 
         <!-- Allow upgrades and prevent downgrades -->
         <MajorUpgrade DowngradeErrorMessage="A later version of $(Name) is already installed. Setup will now exit." />
 
-        <StandardDirectory Id="TARGETDIR" />
+        <!-- Define the ProgramFiles64Folder directory -->
         <StandardDirectory Id="ProgramFiles64Folder">
-            <Directory Id="INSTALLFOLDER" Name="$(var.Name)" />
+            <Directory Id="INSTALLFOLDER" Name="$(FolderName)" />
         </StandardDirectory>
+        <!-- Define the ProgramData directory -->
+        <StandardDirectory Id="CommonAppDataFolder">
+            <Directory Id="CONFIGFOLDER" Name="$(FolderName)" />
+        </StandardDirectory>
+
+        <DirectoryRef Id="CONFIGFOLDER">
+            <!-- Create config folder to store appsettings.json -->
+            <!-- Make sure regular users can't read the config file because it contains credentials -->
+            <Component Id="ConfigPermissions" Guid="16b25c34-404e-47d5-9fd5-b88eb507216d">
+                <CreateFolder>
+                    <!-- Deny read access to Everyone -->
+                    <util:PermissionEx User="Users"
+                                       GenericRead="no"
+                                       Read="no"
+                                       GenericExecute="no"
+                                       Domain="[LOCAL_MACHINE]" />
+                    
+                    <util:PermissionEx User="Administrators"
+                                       GenericAll="yes"
+                                       GenericWrite="yes"
+                                       Delete="yes"
+                                       Domain="[LOCAL_MACHINE]" />
+
+                    <util:PermissionEx User="LocalService"
+                                       GenericRead="yes"
+                                       GenericWrite="yes"
+                                       Delete="yes"
+                                       Domain="[LOCAL_MACHINE]" />
+                </CreateFolder>
+            </Component>
+        </DirectoryRef>
 
         <!-- The files inside this DirectoryRef are linked to
              the Lanpartyseating.Desktop directory via INSTALLFOLDER -->
         <DirectoryRef Id="INSTALLFOLDER">
             
             <!-- Create a single component which is the Lanpartyseating.Desktop.exe file -->
-            <Component Id="ServiceExecutable" Bitness="always64">
+            <Component Id="ServiceExecutable" Bitness="always64" Guid="3bcec0f5-8bfa-4fd0-98e8-2ebe0371efa4">
 
                 <File Source="..\Lanpartyseating.Desktop\bin\$(Configuration)\net7.0-windows\Lanpartyseating.Desktop.exe" />
                 
@@ -49,9 +82,9 @@
                                 Interactive="no"
                                 ErrorControl="normal" />
 
-                <!-- Tell WiX to start the Service -->
+                <!-- Tell WiX not to start the service on install but to stop it on uninstall -->
                 <ServiceControl Id="StartService"
-                                Start="install"
+                                Start="none"
                                 Stop="both"
                                 Remove="uninstall"
                                 Name="Lanpartyseating.Desktop"
@@ -59,8 +92,8 @@
             </Component>
         </DirectoryRef>
 
-        <!-- Tell WiX to install the files -->
-        <Feature Id="Service" Title="Lanpartyseating.Desktop Setup" Level="1">
+        <!-- Tell WiX to install the service -->
+        <Feature Id="Service" Title="Lanpartyseating.Desktop Service" Level="1">
             <ComponentRef Id="ServiceExecutable" />
         </Feature>
 
