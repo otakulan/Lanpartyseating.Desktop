@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Lanpartyseating.Desktop.Config;
+using Microsoft.Extensions.Options;
 using Phoenix;
 using PhoenixTests.WebSocketImpl;
 

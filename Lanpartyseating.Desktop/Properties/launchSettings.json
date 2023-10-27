@@ -1,11 +1,15 @@
 ﻿{
   "profiles": {
-    "Lanpartyseating.Desktop": {
+    "Debug": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }
+    },
+    "Release": {
+      "commandName": "Project",
+      "dotnetRunMessages": true
     }
   }
 }

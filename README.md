@@ -8,7 +8,7 @@ computers. Its primary purpose is to facilitate various actions related to gamin
 logout of users, session time extension or reduction without interrupting players, preparing computers for tournaments,
 and monitoring computer status.
 
-**Please Note:** As of the current release, none of the aforementioned functionality has been implemented, but
+**Please Note:** As of the current release, not all of the aforementioned functionality has been implemented, but
 Lanpartyseating.Desktop is designed to evolve over time.
 
 ## Features
@@ -26,6 +26,23 @@ The core features planned for Lanpartyseating.Desktop include:
 
 4. **Computer Monitoring:** The client will provide real-time monitoring of computer status, allowing administrators to
    identify and address issues promptly.
+
+## Configuration
+
+Lanpartyseating.Desktop is configured using the `appsettings.json` file, located either in the same directory as the
+executable or in the `C:\ProgramData\Lanparty Seating` directory.
+
+The following settings are available:
+
+| Setting                      | Description                                                    |
+|------------------------------|----------------------------------------------------------------|
+| `Seating.WebsocketEndpoint`  | The `lanparty-seating` WebSocket endpoint to connect to.       |
+| `Seating.GamerUsername`      | The username of the gamer account to use for automatic login.  |
+| `Seating.GamerPassword`      | The password of the gamer account to use for automatic login.  |
+| `Seating.TournamentUsername` | The username of the tournament account to use for tournaments. |
+| `Seating.TournamentPassword` | The password of the tournament account to use for tournaments. |
+
+An example configuration file can be found in the repo at `Lanpartyseating.Desktop/appsettings.json`.
 
 ### Phoenix.Channel
 

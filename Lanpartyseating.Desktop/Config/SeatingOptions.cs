@@ -1,4 +1,4 @@
-﻿namespace Lanpartyseating.Desktop;
+﻿namespace Lanpartyseating.Desktop.Config;
 
 public class SeatingOptions
 {
