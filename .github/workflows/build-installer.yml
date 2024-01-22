@@ -11,6 +11,12 @@ on:
 
 jobs:
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+        - x64
+        - arm64
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -32,11 +38,11 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal Lanpartyseating.Desktop.Tests --configuration Release
     - name: Build
-      run: dotnet build LanpartySeating.Desktop.Installer/LanpartySeating.Desktop.Installer.wixproj --configuration Release --property:Version=1.0.20
+      run: dotnet build LanpartySeating.Desktop.Installer/LanpartySeating.Desktop.Installer.wixproj --configuration Release --property:Version=1.0.21 /p:InstallerPlatform=${{ matrix.arch }}
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: LanpartySeating.Desktop.Installer
+        name: LanpartySeating.Desktop.Installer (${{ matrix.arch }})
         path: |
-          LanpartySeating.Desktop.Installer/bin/Release/LanpartySeating.Desktop.Installer.msi
-          LanpartySeating.Desktop.Installer/bin/Release/LanpartySeating.Desktop.Installer.wixpdb
+          LanpartySeating.Desktop.Installer/bin/Release/LanpartySeating.Desktop.Installer-${{ matrix.arch }}.msi
+          LanpartySeating.Desktop.Installer/bin/Release/LanpartySeating.Desktop.Installer-${{ matrix.arch }}.wixpdb

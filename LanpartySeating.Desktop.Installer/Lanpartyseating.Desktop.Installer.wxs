@@ -66,7 +66,7 @@
             <!-- Create a single component which is the Lanpartyseating.Desktop.exe file -->
             <Component Id="ServiceExecutable" Bitness="always64" Guid="3bcec0f5-8bfa-4fd0-98e8-2ebe0371efa4">
 
-                <File Source="..\Lanpartyseating.Desktop\bin\$(Configuration)\net7.0-windows\Lanpartyseating.Desktop.exe" />
+                <File Source="..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish\Lanpartyseating.Desktop.exe" />
                 
                 <!-- Remove all files from the INSTALLFOLDER on uninstall -->
                 <RemoveFile Id="ALLFILES" Name="*.*" On="both" />
