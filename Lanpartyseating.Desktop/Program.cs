@@ -4,6 +4,8 @@ using Lanpartyseating.Desktop.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+
 namespace Lanpartyseating.Desktop;
 
 [UsedImplicitly]
@@ -26,10 +28,22 @@ internal class Program
                     options.ServiceName = "Lanparty Seating";
                 });
                 services.AddOptions<SeatingOptions>()
+                    .ValidateDataAnnotations()
                     .BindConfiguration("Seating");
+                services.AddOptions<DebugOptions>()
+                    .BindConfiguration("Debug");
                 services.AddSingleton<PhoenixChannelReactorService>();
                 services.AddSingleton<Callbacks>();
+                if (services.BuildServiceProvider().GetRequiredService<IOptions<DebugOptions>>().Value.UseDummySessionManager)
+                {
+                    services.AddSingleton<ISessionManager, DummySessionManager>();
+                }
+                else
+                {
+                    services.AddSingleton<ISessionManager, WindowsSessionManager>();
+                }
                 services.AddSingleton<Utils>();
+                services.AddSingleton<Timekeeper>();
                 services.AddHostedService<Worker>();
             })
             .Build();

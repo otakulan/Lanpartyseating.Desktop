@@ -20,6 +20,7 @@ public class PhoenixChannelReactorService
         _desktopChannel.On("new_reservation", callbacks.NewReservation);
         _desktopChannel.On("cancel_reservation", callbacks.CancelReservation);
         _desktopChannel.On("tournament_start", callbacks.TournamentStart);
+        _desktopChannel.On("extend_reservation", callbacks.ExtendReservation);
     }
     
     public void Connect()

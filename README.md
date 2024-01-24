@@ -13,7 +13,7 @@ Lanpartyseating.Desktop is designed to evolve over time.
 
 ## Features
 
-The core features planned for Lanpartyseating.Desktop include:
+The core features of Lanpartyseating.Desktop include:
 
 1. **Automatic User Login/Logout:** The client will automatically log users in at the start of gaming sessions and log
    them out at the end, simplifying the user experience and improving security.
@@ -34,15 +34,20 @@ executable or in the `C:\ProgramData\Lanparty Seating` directory.
 
 The following settings are available:
 
-| Setting                      | Description                                                    |
-|------------------------------|----------------------------------------------------------------|
-| `Seating.WebsocketEndpoint`  | The `lanparty-seating` WebSocket endpoint to connect to.       |
-| `Seating.GamerUsername`      | The username of the gamer account to use for automatic login.  |
-| `Seating.GamerPassword`      | The password of the gamer account to use for automatic login.  |
-| `Seating.TournamentUsername` | The username of the tournament account to use for tournaments. |
-| `Seating.TournamentPassword` | The password of the tournament account to use for tournaments. |
+> [!WARNING]
+> The `Debug` settings should only be used to facilitate development of the software. Enabling them in production will cause the software to malfunction.
 
-An example configuration file can be found in the repo at `Lanpartyseating.Desktop/appsettings.json`.
+| Setting                             | Description                                                                                                  |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `Debug.ReactToAllStations`          | Set to `true` to process stations events regardless of if they are destined for the current station.         |
+| `Debug.UseDummySessionManager`      | Set to `true` to simply log descriptive messages instead of logging in and out of windows sessions for real. |
+| `Seating.WebsocketEndpoint`         | The `lanparty-seating` WebSocket endpoint to connect to.                                                     |
+| `Seating.GamerAccountUsername`      | The username of the gamer account to use for automatic login.                                                |
+| `Seating.GamerAccountPassword`      | The password of the gamer account to use for automatic login.                                                |
+| `Seating.TournamentAccountUsername` | The username of the tournament account to use for tournaments.                                               |
+| `Seating.TournamentAccountPassword` | The password of the tournament account to use for tournaments.                                               |
+
+An example configuration file can be found in the repo at `Lanpartyseating.Desktop/appsettings.Production.json`.
 
 ### Phoenix.Channel
 
