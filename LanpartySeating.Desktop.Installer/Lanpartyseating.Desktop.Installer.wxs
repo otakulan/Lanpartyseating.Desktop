@@ -35,26 +35,12 @@
         <DirectoryRef Id="CONFIGFOLDER">
             <!-- Create config folder to store appsettings.json -->
             <!-- Make sure regular users can't read the config file because it contains credentials -->
-            <Component Id="ConfigPermissions" Guid="16b25c34-404e-47d5-9fd5-b88eb507216d">
+            <Component Id="ConfigPermissions" Bitness="always64" Guid="16b25c34-404e-47d5-9fd5-b88eb507216d">
                 <CreateFolder>
-                    <!-- Deny read access to Everyone -->
-                    <util:PermissionEx User="Users"
-                                       GenericRead="no"
-                                       Read="no"
-                                       GenericExecute="no"
-                                       Domain="[LOCAL_MACHINE]" />
-                    
-                    <util:PermissionEx User="Administrators"
-                                       GenericAll="yes"
-                                       GenericWrite="yes"
-                                       Delete="yes"
-                                       Domain="[LOCAL_MACHINE]" />
-
-                    <util:PermissionEx User="LocalService"
-                                       GenericRead="yes"
-                                       GenericWrite="yes"
-                                       Delete="yes"
-                                       Domain="[LOCAL_MACHINE]" />
+                    <util:PermissionEx User="Administrators" GenericAll="yes" />
+                    <util:PermissionEx User="LocalService" GenericRead="yes" GenericWrite="yes" Delete="yes" />
+                    <!-- Explicitly deny all common permissions for the "Users" group -->
+                    <util:PermissionEx User="Users" GenericRead="no" GenericWrite="no" Delete="no" />
                 </CreateFolder>
             </Component>
         </DirectoryRef>

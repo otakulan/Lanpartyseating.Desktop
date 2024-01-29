@@ -2,7 +2,7 @@
 
 namespace Lanpartyseating.Desktop.Contracts;
 
-public class NewReservation
+public class ExtendReservation
 {
     [JsonProperty("station_number")]
     public int StationNumber { get; init; }

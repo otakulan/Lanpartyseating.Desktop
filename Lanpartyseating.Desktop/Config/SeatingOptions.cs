@@ -1,10 +1,17 @@
-﻿namespace Lanpartyseating.Desktop.Config;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Lanpartyseating.Desktop.Config;
 
 public class SeatingOptions
 {
-    public string WebsocketEndpoint { get; set; }
-    public string GamerAccountUsername { get; set; }
-    public string GamerAccountPassword { get; set; }
-    public string TournamentAccountUsername { get; set; }
-    public string TournamentAccountPassword { get; set; }
+    [Required]
+    public required string WebsocketEndpoint { get; set; }
+    [Required]
+    public required string GamerAccountUsername { get; set; }
+    [Required(AllowEmptyStrings = true)]
+    public required string GamerAccountPassword { get; set; }
+    [Required]
+    public required string TournamentAccountUsername { get; set; }
+    [Required(AllowEmptyStrings = true)]
+    public required string TournamentAccountPassword { get; set; }
 }

@@ -38,7 +38,7 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal Lanpartyseating.Desktop.Tests --configuration Release
     - name: Build
-      run: dotnet build LanpartySeating.Desktop.Installer/LanpartySeating.Desktop.Installer.wixproj --configuration Release --property:Version=1.0.21 /p:InstallerPlatform=${{ matrix.arch }}
+      run: dotnet build LanpartySeating.Desktop.Installer/LanpartySeating.Desktop.Installer.wixproj --configuration Release --property:Version=1.0.22 /p:InstallerPlatform=${{ matrix.arch }}
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
