@@ -3,7 +3,7 @@
         <!-- Default to Version 1.0.0 if not specified via /p:Version=x.x.x from cli -->
         <Version Condition=" '$(Version)' == '' ">1.0.0</Version>
         <!-- Propagate version information from msbuild to the WiX project -->
-        <DefineConstants>$(DefineConstants);Version=$(Version);PublishOutput=..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish</DefineConstants>
+        <DefineConstants>$(DefineConstants);Version=$(Version);ServicePublishOutput=..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish;TrayPublishOutput=..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish</DefineConstants>
         <OutputType>package</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <!-- Default to x64 if not specified via /p:InstallerPlatform=x64 or /p:InstallerPlatform=arm64 from cli -->
@@ -11,19 +11,26 @@
         <OutputName>LanpartySeating.Desktop.Installer-$(InstallerPlatform)</OutputName>
     </PropertyGroup>
     <ItemGroup>
+        <HarvestDirectory Include="..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish\">
+            <DirectoryRefId>TRAYINSTALLFOLDER</DirectoryRefId>
+            <ComponentGroupName>TrayApplicationFilesComponentGroup</ComponentGroupName>
+            <KeepEmptyDirectories>true</KeepEmptyDirectories>
+            <SuppressRootDirectory>true</SuppressRootDirectory>
+            <PreprocessorVariable>var.TrayPublishOutput</PreprocessorVariable>
+        </HarvestDirectory>
         <HarvestDirectory Include="..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish\">
-            <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
-            <ComponentGroupName>ApplicationFilesComponentGroup</ComponentGroupName>
+            <DirectoryRefId>SERVICEINSTALLFOLDER</DirectoryRefId>
+            <ComponentGroupName>ServiceApplicationFilesComponentGroup</ComponentGroupName>
             <KeepEmptyDirectories>true</KeepEmptyDirectories>
             <SuppressRootDirectory>true</SuppressRootDirectory>
             <Transforms>ExcludeFiles.xslt</Transforms>
-            <PreprocessorVariable>var.PublishOutput</PreprocessorVariable>
+            <PreprocessorVariable>var.ServicePublishOutput</PreprocessorVariable>
         </HarvestDirectory>
     </ItemGroup>
     <Target Name="CustomBeforeBuild" BeforeTargets="BeforeBuild">
-        <Message Text="BeforeBuild is running" Importance="high" />
         <Message Text="InstallerPlatform is $(InstallerPlatform)" Importance="high" />
         <Exec Command="dotnet publish ..\Lanpartyseating.Desktop\Lanpartyseating.Desktop.csproj -c Release -r win-$(InstallerPlatform) -o ..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish\" />
+        <Exec Command="dotnet publish ..\Lanpartyseating.Desktop.Tray\Lanpartyseating.Desktop.Tray.csproj -c Release -r win-$(InstallerPlatform) -o ..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish\" />
     </Target>
     <ItemGroup>
         <PackageReference Include="WixToolset.Heat" Version="4.0.3" />

@@ -15,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Lanpartyseating.Desktop.Abstractions\Lanpartyseating.Desktop.Abstractions.csproj" />
       <ProjectReference Include="..\PhoenixSharp\PhoenixTests\PhoenixTests.csproj" />
       <ProjectReference Include="..\PhoenixSharp\Phoenix\Phoenix.csproj" />
     </ItemGroup>

@@ -1,3 +1,4 @@
+using System.IO.Pipes;
 using Lanpartyseating.Desktop.Business;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

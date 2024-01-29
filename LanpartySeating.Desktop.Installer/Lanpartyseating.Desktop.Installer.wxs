@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 
 <?define Name = "Lanparty Seating Desktop Client" ?>
-<?define FolderName = "Lanparty Seating" ?>
+<?define ServiceFolderName = "Lanparty Seating" ?>
+<?define TrayFolderName = "Lanparty Seating Tray" ?>
 <?define Manufacturer = "Otakuthon PC Gaming" ?>
 <?define UpgradeCode = "{B7277C09-B011-4D40-8995-2093303E9F28}" ?>
 
@@ -16,8 +17,13 @@
 
         <Feature Id="MainApplication" Title="Lanpartyseating.Desktop Application" Level="1">
             <!-- Reference the component group inside the feature. -->
-            <ComponentGroupRef Id="ApplicationFilesComponentGroup" />
+            <ComponentGroupRef Id="ServiceApplicationFilesComponentGroup" />
             <ComponentRef Id="ConfigPermissions" />
+        </Feature>
+        
+        <Feature Id="TrayApplication" Title="Lanpartyseating.Desktop.Tray Application" Level="1">
+            <!-- Reference the component group inside the feature. -->
+            <ComponentGroupRef Id="TrayApplicationFilesComponentGroup" />
         </Feature>
 
         <!-- Allow upgrades and prevent downgrades -->
@@ -25,12 +31,39 @@
 
         <!-- Define the ProgramFiles64Folder directory -->
         <StandardDirectory Id="ProgramFiles64Folder">
-            <Directory Id="INSTALLFOLDER" Name="$(FolderName)" />
+            <Directory Id="TRAYINSTALLFOLDER" Name="$(TrayFolderName)" />
+        </StandardDirectory>
+        <StandardDirectory Id="ProgramFiles64Folder">
+            <Directory Id="SERVICEINSTALLFOLDER" Name="$(ServiceFolderName)" />
         </StandardDirectory>
         <!-- Define the ProgramData directory -->
         <StandardDirectory Id="CommonAppDataFolder">
-            <Directory Id="CONFIGFOLDER" Name="$(FolderName)" />
+            <Directory Id="CONFIGFOLDER" Name="$(ServiceFolderName)" />
         </StandardDirectory>
+
+        <!-- Shortcut directory -->
+        <!-- C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp -->
+        <Directory Id="CommonStartupFolder" Name="ProgramData">
+            <Directory Id="CommonProgramsFolder" Name="Microsoft">
+                <Directory Id="CommonStartUpFolder" Name="Windows">
+                    <Directory Id="CommonProgramsMenuFolder" Name="Start Menu">
+                        <Directory Id="CommonStartupMenuFolder" Name="Programs">
+                            <Directory Id="AllUsersStartupFolder" Name="Startup">
+                                <Component Id="TrayShortcut" Bitness="always64" Guid="cc97c616-d26f-4b49-b410-08801d1a53c9">
+                                    <Shortcut Id="ApplicationStartMenuShortcut"
+                                              Name="Lanparty Seating Desktop Client"
+                                              Description="My Application Description"
+                                              WorkingDirectory="TRAYINSTALLFOLDER"
+                                              Target="[TRAYINSTALLFOLDER]\Lanpartyseating.Desktop.Tray.exe">
+                                        <ShortcutProperty Key="{9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}, 5" Value="Otakuthon.Lanpartyseating.Desktop" />
+                                    </Shortcut>
+                                </Component>
+                            </Directory>
+                        </Directory>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </Directory>
 
         <DirectoryRef Id="CONFIGFOLDER">
             <!-- Create config folder to store appsettings.json -->
@@ -47,15 +80,15 @@
 
         <!-- The files inside this DirectoryRef are linked to
              the Lanpartyseating.Desktop directory via INSTALLFOLDER -->
-        <DirectoryRef Id="INSTALLFOLDER">
-            
+        <DirectoryRef Id="SERVICEINSTALLFOLDER">
+
             <!-- Create a single component which is the Lanpartyseating.Desktop.exe file -->
             <Component Id="ServiceExecutable" Bitness="always64" Guid="3bcec0f5-8bfa-4fd0-98e8-2ebe0371efa4">
 
                 <File Source="..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish\Lanpartyseating.Desktop.exe" />
-                
+
                 <!-- Remove all files from the INSTALLFOLDER on uninstall -->
-                <RemoveFile Id="ALLFILES" Name="*.*" On="both" />
+                <RemoveFile Id="ALLSERVICEFILES" Name="*.*" On="both" />
 
                 <!-- Tell WiX to install the Service -->
                 <ServiceInstall Id="ServiceInstaller"
@@ -78,9 +111,34 @@
             </Component>
         </DirectoryRef>
 
+        <DirectoryRef Id="TRAYINSTALLFOLDER">
+            
+            <!-- Create a single component which is the Lanpartyseating.Desktop.exe file -->
+<!--            <Component Id="TrayExecutable" Bitness="always64" Guid="cc97c616-d26f-4b49-b410-08801d1a53c9">-->
+
+<!--                <File Source="..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish\Lanpartyseating.Desktop.Tray.exe" KeyPath="yes" />-->
+                
+                <!-- Remove all files from the INSTALLFOLDER on uninstall -->
+<!--                <RemoveFile Id="ALLTRAYFILES" Name="*.*" On="both" />-->
+                
+<!--                <Shortcut Id="ApplicationStartMenuShortcut"-->
+<!--                          Name="Lanparty Seating Desktop Client"-->
+<!--                          Description="My Application Description"-->
+<!--                          WorkingDirectory="TRAYINSTALLFOLDER"-->
+<!--                          Directory="STARTFOLDER"-->
+<!--                          Advertise="yes"/>-->
+<!--                <RemoveFolder Id="RemoveSTARTFOLDER" Directory="STARTFOLDER" On="uninstall"/>-->
+<!--                <RegistryValue Root="HKCU" Key="Software\Otakuthon\LanpartySeatingDesktop" Name="installed" Type="integer" Value="1" />-->
+
+<!--            </Component>-->
+        </DirectoryRef>
+
         <!-- Tell WiX to install the service -->
         <Feature Id="Service" Title="Lanpartyseating.Desktop Service" Level="1">
             <ComponentRef Id="ServiceExecutable" />
+        </Feature>
+        <Feature Id="Tray" Title="Lanpartyseating.DesktopTray Application" Level="1">
+            <ComponentRef Id="TrayShortcut" />
         </Feature>
 
     </Package>

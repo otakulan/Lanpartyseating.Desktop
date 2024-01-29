@@ -43,8 +43,12 @@ internal class Program
                     services.AddSingleton<ISessionManager, WindowsSessionManager>();
                 }
                 services.AddSingleton<Utils>();
-                services.AddSingleton<Timekeeper>();
                 services.AddHostedService<Worker>();
+                services.AddSingleton<ReservationManager>();
+                services.AddSingleton<NamedPipeServerHostedService>();
+                services.AddSingleton<INamedPipeServerService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
+                services.AddHostedService<NamedPipeServerHostedService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
+                services.AddSingleton<Timekeeper>();
             })
             .Build();
 
