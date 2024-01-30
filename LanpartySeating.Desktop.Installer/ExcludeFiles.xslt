@@ -18,7 +18,7 @@
     <!-- Remove the configuration files, they should be provided by the user -->
     <xsl:key
             name="FilesToRemove"
-            match="wix:Component[wix:File[contains(@Source, 'appsettings.json')]]"
+            match="wix:Component[wix:File[contains(@Source, 'appsettings.Production.json')]]"
             use="@Id"
     />
     <xsl:key

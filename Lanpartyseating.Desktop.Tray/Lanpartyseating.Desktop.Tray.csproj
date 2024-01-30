@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ApplicationIcon>trayicon.ico</ApplicationIcon>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <ApplicationManifest>ApplicationManifest.xml</ApplicationManifest>
+        <AssemblyTitle>Otakuthon PC Gaming</AssemblyTitle>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Remove="trayicon.ico" />
+      <EmbeddedResource Include="trayicon.ico" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+      <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+      <PackageReference Include="Microsoft.WindowsAPICodePack.Shell" Version="1.1.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Lanpartyseating.Desktop.Abstractions\Lanpartyseating.Desktop.Abstractions.csproj" />
+    </ItemGroup>
+
+</Project>
