@@ -68,12 +68,11 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            InitializePipeServer();
-
-            _logger.LogInformation("Waiting for client connection...");
-
             try
             {
+                InitializePipeServer();
+                _logger.LogInformation("Waiting for client connection...");
+
                 var waitTask = _server.WaitForConnectionAsync(stoppingToken);
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // Adjust the timeout as needed
 
@@ -139,6 +138,8 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
 
         if (pipeHandle.IsInvalid)
         {
+            // Access denied errors have been observed here intermittently.
+            // Throwing here will cause the server to re-initialize in the run loop above.
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
