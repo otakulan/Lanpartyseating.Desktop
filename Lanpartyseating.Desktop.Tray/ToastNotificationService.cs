@@ -70,9 +70,12 @@ public class ToastNotificationService : BackgroundService
     private async Task SendInitialMessageAsync(NamedPipeClientStream client, CancellationToken stoppingToken)
     {
         await using var writer = new StreamWriter(client, leaveOpen: true);
-        var request = new ReservationStateRequest();
-        var jsonRequest = JsonMessageSerializer.Serialize(request);
-        await writer.WriteLineAsync(jsonRequest);
+        var reservationStateRequest = new ReservationStateRequest();
+        var jsonReservationStateRequest = JsonMessageSerializer.Serialize(reservationStateRequest);
+        var clearAutoLogonRequest = new ClearAutoLogonRequest();
+        var jsonClearAutoLogonRequest = JsonMessageSerializer.Serialize(clearAutoLogonRequest);
+        await writer.WriteLineAsync(jsonReservationStateRequest);
+        await writer.WriteLineAsync(jsonClearAutoLogonRequest);
         await writer.FlushAsync(stoppingToken);
     }
 
