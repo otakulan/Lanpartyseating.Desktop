@@ -26,4 +26,9 @@ public class DummySessionManager : ISessionManager
     {
         _logger.LogInformation("The client would have logged out an the current interactive session now");
     }
+
+    public void ClearAutoLogonCredentials()
+    {
+        _logger.LogInformation("The client would have cleared the autologon credentials now");
+    }
 }

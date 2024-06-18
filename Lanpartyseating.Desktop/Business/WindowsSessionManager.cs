@@ -69,4 +69,18 @@ public class WindowsSessionManager : ISessionManager
         var sessionId = WTSGetActiveConsoleSessionId();
         WTSLogoffSession(IntPtr.Zero, sessionId, false);
     }
+
+    public void ClearAutoLogonCredentials()
+    {
+        var winlogonRegPath = @"Software\Microsoft\Windows NT\CurrentVersion\Winlogon";
+
+        // Disable autologon
+        Registry.SetValue($@"HKEY_LOCAL_MACHINE\{winlogonRegPath}", "AutoAdminLogon", 0, RegistryValueKind.DWord);
+
+        // Clear autologon username
+        Registry.SetValue($@"HKEY_LOCAL_MACHINE\{winlogonRegPath}", "DefaultUserName", "", RegistryValueKind.String);
+
+        // Clear autologon password
+        Registry.SetValue($@"HKEY_LOCAL_MACHINE\{winlogonRegPath}", "DefaultPassword", "", RegistryValueKind.String);
+    }
 }

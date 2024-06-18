@@ -15,13 +15,15 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
 {
     private readonly ILogger<NamedPipeServerHostedService> _logger;
     private readonly ReservationManager _reservationManager;
+    private readonly ISessionManager _sessionManager;
     private const string PipeName = "Lanpartyseating.Desktop";
     private NamedPipeServerStream? _server;
 
-    public NamedPipeServerHostedService(ILogger<NamedPipeServerHostedService> logger, ReservationManager reservationManager)
+    public NamedPipeServerHostedService(ILogger<NamedPipeServerHostedService> logger, ReservationManager reservationManager, ISessionManager sessionManager)
     {
         _logger = logger;
         _reservationManager = reservationManager;
+        _sessionManager = sessionManager;
         _server = null;
     }
     
@@ -196,6 +198,14 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                         };
                         await writer.WriteLineAsync(JsonMessageSerializer.Serialize(response));
                         await writer.FlushAsync();
+                    }
+                    else if (baseMessage is ClearAutoLogonRequest)
+                    {
+                        _sessionManager.ClearAutoLogonCredentials();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Received an unknown message type.");
                     }
 
                     // Check for cancellation again after processing the message
