@@ -114,6 +114,9 @@ public class ToastNotificationService : BackgroundService
         }
         else if (message is ReservationStateResponse reservationStateResponse)
         {
+            // Don't show the pop-up if the session is not active (e.g. tournament or fresh boot auto login)
+            if (reservationStateResponse.IsSessionActive == false) return;
+
             var minutesUntilEnd = (reservationStateResponse.ReservationEnd - DateTimeOffset.UtcNow).TotalMinutes;
             var formattedLocalEndTime = reservationStateResponse.ReservationEnd.ToLocalTime().ToString("t");
             
