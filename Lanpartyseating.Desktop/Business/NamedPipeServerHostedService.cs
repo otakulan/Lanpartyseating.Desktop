@@ -1,15 +1,14 @@
 ﻿using System.ComponentModel;
-using Lanpartyseating.Desktop.Abstractions;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using Lanpartyseating.Desktop.Business;
+using Lanpartyseating.Desktop.Abstractions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32.SafeHandles;
 
-namespace Lanpartyseating.Desktop;
+namespace Lanpartyseating.Desktop.Business;
 
 public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerService
 {
