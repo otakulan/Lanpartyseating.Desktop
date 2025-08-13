@@ -214,19 +214,6 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                     {
                         _sessionManager.ClearAutoLogonCredentials();
                     }
-                    else if (baseMessage is CredentialRequest)
-                    {
-                        // Respond with current stored credentials
-                        var credentialResponse = new CredentialResponse
-                        {
-                            Username = _currentUsername ?? "",
-                            Password = _currentPassword ?? "",
-                            Domain = _currentDomain
-                        };
-                        await writer.WriteLineAsync(JsonMessageSerializer.Serialize(credentialResponse));
-                        await writer.FlushAsync();
-                        _logger.LogInformation("Sent credentials to credential provider");
-                    }
                     else if (baseMessage is TriggerLoginRequest triggerLogin)
                     {
                         // Store credentials and send to credential provider if connected
