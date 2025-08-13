@@ -18,6 +18,11 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
     private readonly ISessionManager _sessionManager;
     private const string PipeName = "Lanpartyseating.Desktop";
     private NamedPipeServerStream? _server;
+    
+    // Store current credentials for credential provider requests
+    private string? _currentUsername;
+    private string? _currentPassword;
+    private string? _currentDomain;
 
     public NamedPipeServerHostedService(ILogger<NamedPipeServerHostedService> logger, ReservationManager reservationManager, ISessionManager sessionManager)
     {
@@ -75,7 +80,7 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                 InitializePipeServer();
                 _logger.LogInformation("Waiting for client connection...");
 
-                var waitTask = _server.WaitForConnectionAsync(stoppingToken);
+                var waitTask = _server!.WaitForConnectionAsync(stoppingToken);
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // Adjust the timeout as needed
 
                 if (await Task.WhenAny(waitTask, timeoutTask) == timeoutTask)
@@ -100,7 +105,7 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
             }
             finally
             {
-                if (_server.IsConnected)
+                if (_server!.IsConnected)
                 {
                     _server.Disconnect(); // Ensure the server is disconnected after handling a connection
                 }
@@ -170,7 +175,7 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
 
             while (!stoppingToken.IsCancellationRequested && _server.IsConnected)
             {
-                string json = null;
+                string? json = null;
 
                 try
                 {
@@ -187,7 +192,14 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
 
                 if (json != null)
                 {
-                    var baseMessage = JsonMessageSerializer.Deserialize<BaseMessage>(json);
+                    BaseMessage? baseMessage = JsonMessageSerializer.Deserialize<BaseMessage>(json);
+                    
+                    if (baseMessage == null)
+                    {
+                        _logger.LogWarning("Failed to deserialize message: {Message}", json);
+                        continue;
+                    }
+                    
                     if (baseMessage is ReservationStateRequest)
                     {
                         var response = new ReservationStateResponse
@@ -202,6 +214,73 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                     else if (baseMessage is ClearAutoLogonRequest)
                     {
                         _sessionManager.ClearAutoLogonCredentials();
+                    }
+                    else if (baseMessage is CredentialRequest)
+                    {
+                        // Respond with current stored credentials
+                        var credentialResponse = new CredentialResponse
+                        {
+                            Username = _currentUsername ?? "",
+                            Password = _currentPassword ?? "",
+                            Domain = _currentDomain
+                        };
+                        await writer.WriteLineAsync(JsonMessageSerializer.Serialize(credentialResponse));
+                        await writer.FlushAsync();
+                        _logger.LogInformation("Sent credentials to credential provider");
+                    }
+                    else if (baseMessage is TriggerLoginRequest triggerLogin)
+                    {
+                        // Store credentials and send to credential provider if connected
+                        _currentUsername = triggerLogin.Username;
+                        _currentPassword = triggerLogin.Password;
+                        _currentDomain = triggerLogin.Domain;
+                        _logger.LogInformation("Received trigger login request for user: {Username}", triggerLogin.Username);
+                        
+                        // Send the trigger message using proper serialization
+                        var triggerMessage = JsonMessageSerializer.Serialize(triggerLogin);
+                        await writer.WriteLineAsync(triggerMessage);
+                        await writer.FlushAsync();
+                        
+                        _logger.LogInformation("Sent TriggerLogin message to credential provider");
+                    }
+                    else if (baseMessage is CredentialProviderConnected credProviderConnected)
+                    {
+                        _logger.LogInformation("Credential provider connected from process {ProcessId} at {Timestamp}", 
+                            credProviderConnected.ProcessId, credProviderConnected.Timestamp);
+                    }
+                    else if (baseMessage is CredentialRequest credRequest)
+                    {
+                        _logger.LogInformation("Received credential request from process {ProcessId}", credRequest.ProcessId);
+                        
+                        // Send current credentials if available
+                        if (!string.IsNullOrEmpty(_currentUsername) && !string.IsNullOrEmpty(_currentPassword))
+                        {
+                            var credentialResponse = new CredentialResponse
+                            {
+                                Username = _currentUsername,
+                                Password = _currentPassword,
+                                Domain = _currentDomain,
+                                Success = true
+                            };
+                            var responseMessage = JsonMessageSerializer.Serialize(credentialResponse);
+                            await writer.WriteLineAsync(responseMessage);
+                            await writer.FlushAsync();
+                            _logger.LogInformation("Sent credentials to credential provider process {ProcessId}", credRequest.ProcessId);
+                        }
+                        else
+                        {
+                            var errorResponse = new CredentialResponse
+                            {
+                                Username = "",
+                                Password = "",
+                                Success = false,
+                                ErrorMessage = "No credentials available"
+                            };
+                            var responseMessage = JsonMessageSerializer.Serialize(errorResponse);
+                            await writer.WriteLineAsync(responseMessage);
+                            await writer.FlushAsync();
+                            _logger.LogWarning("No credentials available for credential provider request from process {ProcessId}", credRequest.ProcessId);
+                        }
                     }
                     else
                     {

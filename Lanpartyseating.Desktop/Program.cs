@@ -34,12 +34,24 @@ internal class Program
                     .BindConfiguration("Debug");
                 services.AddSingleton<PhoenixChannelReactorService>();
                 services.AddSingleton<Callbacks>();
-                if (services.BuildServiceProvider().GetRequiredService<IOptions<DebugOptions>>().Value.UseDummySessionManager)
+                services.AddSingleton<ICredentialProviderService, CredentialProviderService>();
+                
+                var debugOptions = services.BuildServiceProvider().GetRequiredService<IOptions<DebugOptions>>().Value;
+                
+                if (debugOptions.UseDummySessionManager)
                 {
                     services.AddSingleton<ISessionManager, DummySessionManager>();
                 }
+                else if (debugOptions.UseCredentialProvider)
+                {
+                    // Use the new credential provider session manager
+                    services.AddSingleton<ISessionManager, CredentialProviderSessionManager>();
+                    // Keep the old one available if needed
+                    services.AddSingleton<WindowsSessionManager>();
+                }
                 else
                 {
+                    // Use the old registry-based approach
                     services.AddSingleton<ISessionManager, WindowsSessionManager>();
                 }
                 services.AddSingleton<Utils>();
