@@ -1,12 +1,9 @@
-﻿using System.ComponentModel;
-using System.IO.Pipes;
-using System.Runtime.InteropServices;
+﻿using System.IO.Pipes;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Lanpartyseating.Desktop.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32.SafeHandles;
 
 namespace Lanpartyseating.Desktop.Business;
 
@@ -30,85 +27,75 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
         _sessionManager = sessionManager;
         _server = null;
     }
-    
-    [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern SafePipeHandle CreateNamedPipe(string lpName, uint dwOpenMode, uint dwPipeMode, uint nMaxInstances, uint nOutBufferSize, uint nInBufferSize, uint nDefaultTimeOut, SECURITY_ATTRIBUTES lpSecurityAttributes);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public class SECURITY_ATTRIBUTES
-    {
-        public int nLength;
-        public IntPtr lpSecurityDescriptor;
-        public int bInheritHandle;
-    }
-    
-    [DllImport("advapi32.dll", SetLastError = true)]
-    public static extern bool ConvertStringSecurityDescriptorToSecurityDescriptor(
-        string StringSecurityDescriptor,
-        uint StringSDRevision,
-        out IntPtr SecurityDescriptor,
-        out uint SecurityDescriptorSize);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern IntPtr LocalFree(IntPtr hMem);
-    
-    // Pipe open modes
-    const uint PIPE_ACCESS_DUPLEX = 0x00000003;
-    const uint PIPE_ACCESS_INBOUND = 0x00000001;
-    const uint PIPE_ACCESS_OUTBOUND = 0x00000002;
-
-// Pipe modes
-    const uint PIPE_TYPE_BYTE = 0x00000000;
-    const uint PIPE_TYPE_MESSAGE = 0x00000004;
-    const uint PIPE_READMODE_BYTE = 0x00000000;
-    const uint PIPE_READMODE_MESSAGE = 0x00000002;
-    const uint PIPE_WAIT = 0x00000000;
-    const uint PIPE_NOWAIT = 0x00000001;
-
-// Additional flags
-    const uint FILE_FLAG_OVERLAPPED = 0x40000000;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         stoppingToken.Register(() => _logger.LogInformation("Service is stopping."));
 
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                InitializePipeServer();
-                _logger.LogInformation("Waiting for client connection...");
-
-                var waitTask = _server!.WaitForConnectionAsync(stoppingToken);
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // Adjust the timeout as needed
-
-                if (await Task.WhenAny(waitTask, timeoutTask) == timeoutTask)
+                try
                 {
-                    _logger.LogDebug("Timeout while waiting for a client connection. Reconnecting in 3 seconds...");
-                    await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
-                }
-                else
-                {
-                    _logger.LogInformation("Client connected.");
+                    InitializePipeServer();
+                    _logger.LogInformation("Waiting for client connection...");
 
-                    await ProcessClientConnectionAsync(stoppingToken);
+                    var waitTask = _server!.WaitForConnectionAsync(stoppingToken);
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // Adjust the timeout as needed
+
+                    if (await Task.WhenAny(waitTask, timeoutTask) == timeoutTask)
+                    {
+                        _logger.LogDebug("Timeout while waiting for a client connection. Reconnecting in 3 seconds...");
+                        await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Client connected.");
+
+                        // Process the client connection - this will block until client disconnects
+                        await ProcessClientConnectionAsync(stoppingToken);
+                        
+                        // After client disconnects, we need to disconnect and recreate the pipe
+                        _logger.LogInformation("Client disconnected, preparing for next connection...");
+                        if (_server!.IsConnected)
+                        {
+                            _server.Disconnect();
+                        }
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogInformation("Operation canceled by stoppingToken.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while waiting for a client connection.");
-            }
-            finally
-            {
-                if (_server!.IsConnected)
+                catch (OperationCanceledException)
                 {
-                    _server.Disconnect(); // Ensure the server is disconnected after handling a connection
+                    _logger.LogInformation("Operation canceled by stoppingToken.");
+                    break; // Exit the while loop when operation is canceled
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "An error occurred while waiting for a client connection.");
+                    
+                    // Disconnect and wait before retrying
+                    if (_server != null && _server.IsConnected)
+                    {
+                        _server.Disconnect();
+                    }
+                    
+                    // Wait a bit before retrying to prevent tight error loops
+                    await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Service execution was canceled.");
+        }
+        finally
+        {
+            // Clean up the connection when service stops
+            if (_server!.IsConnected)
+            {
+                _server.Disconnect();
+            }
+            _logger.LogInformation("Service is fully stopped.");
         }
     }
     
@@ -117,45 +104,45 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
         // Dispose of the existing server if it's already been created
         _server?.Dispose();
 
-        var pipeSecurity = new PipeSecurity();
-        var authenticatedUsers = new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null);
-        var pipeAccessRule = new PipeAccessRule(authenticatedUsers, PipeAccessRights.ReadWrite, AccessControlType.Allow);
-        pipeSecurity.AddAccessRule(pipeAccessRule);
-
-        // Convert the PipeSecurity object to a SECURITY_ATTRIBUTES structure
-        IntPtr sd = ConvertPipeSecurityToSecurityDescriptor(pipeSecurity);
-        var sa = new SECURITY_ATTRIBUTES
+        try
         {
-            nLength = Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)),
-            lpSecurityDescriptor = sd,
-            bInheritHandle = 1 // True
-        };
+            // Create pipe security that allows multiple processes to connect
+            var pipeSecurity = new PipeSecurity();
+            
+            // Allow Everyone to read/write to the pipe
+            var everyoneIdentity = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+            var pipeAccessRule = new PipeAccessRule(everyoneIdentity, 
+                PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance, 
+                AccessControlType.Allow);
+            pipeSecurity.AddAccessRule(pipeAccessRule);
+            
+            // Also explicitly allow the current user full control
+            var currentUser = WindowsIdentity.GetCurrent();
+            if (currentUser.User != null)
+            {
+                var userAccessRule = new PipeAccessRule(currentUser.User,
+                    PipeAccessRights.FullControl,
+                    AccessControlType.Allow);
+                pipeSecurity.AddAccessRule(userAccessRule);
+            }
 
-        // Create the named pipe
-        var pipeHandle = CreateNamedPipe(
-            @"\\.\pipe\" + PipeName,
-            PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
-            1, // Max instances
-            4096, // Out buffer size
-            4096, // In buffer size
-            0, // Default timeout
-            sa);
-
-        if (pipeHandle.IsInvalid)
-        {
-            // Access denied errors have been observed here intermittently.
-            // Throwing here will cause the server to re-initialize in the run loop above.
-            throw new Win32Exception(Marshal.GetLastWin32Error());
+            // Create the pipe with proper security using ACL method
+            _server = NamedPipeServerStreamAcl.Create(
+                PipeName,
+                PipeDirection.InOut,
+                254, // maxNumberOfServerInstances
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous,
+                inBufferSize: 4096,
+                outBufferSize: 4096,
+                pipeSecurity);
+                
+            _logger.LogDebug("Named pipe server initialized successfully with security permissions");
         }
-
-        // Create the NamedPipeServerStream instance
-        _server = new NamedPipeServerStream(PipeDirection.InOut, false, true, pipeHandle);
-
-        // Free the security descriptor memory
-        if (sd != IntPtr.Zero)
+        catch (Exception ex)
         {
-            LocalFree(sd);
+            _logger.LogError(ex, "Failed to initialize named pipe server");
+            throw;
         }
     }
     
@@ -170,17 +157,43 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
         try
         {
             using var reader = new StreamReader(_server, leaveOpen: true);
-            await using var writer = new StreamWriter(_server, leaveOpen: true);
+            StreamWriter? writer = null;
+            
+            try
+            {
+                writer = new StreamWriter(_server, leaveOpen: true);
+                Task<string?>? currentReadTask = null;
 
-            while (!stoppingToken.IsCancellationRequested && _server.IsConnected)
+                while (!stoppingToken.IsCancellationRequested && _server.IsConnected)
             {
                 string? json = null;
 
                 try
                 {
+                    // Check for cancellation before potentially blocking I/O operation
+                    if (stoppingToken.IsCancellationRequested)
+                        break;
+                        
                     if (_server.CanRead)
                     {
-                        json = await reader.ReadLineAsync();
+                        // Only start a new read if we don't have one running
+                        if (currentReadTask == null)
+                        {
+                            currentReadTask = reader.ReadLineAsync();
+                        }
+                        
+                        // Check if the current read task has completed
+                        if (currentReadTask.IsCompleted)
+                        {
+                            json = await currentReadTask;
+                            currentReadTask = null; // Reset for next iteration
+                        }
+                        else
+                        {
+                            // Read task is still running, just wait a bit and check for cancellation
+                            await Task.Delay(50, stoppingToken);
+                            continue;
+                        }
                     }
                 }
                 catch (IOException ex)
@@ -199,6 +212,10 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                         continue;
                     }
                     
+                    // Check for cancellation before processing messages
+                    if (stoppingToken.IsCancellationRequested)
+                        break;
+                    
                     if (baseMessage is ReservationStateRequest)
                     {
                         var response = new ReservationStateResponse
@@ -208,26 +225,11 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                             ReservationEnd = _reservationManager.ReservationEnd,
                         };
                         await writer.WriteLineAsync(JsonMessageSerializer.Serialize(response));
-                        await writer.FlushAsync();
+                        await writer.FlushAsync(stoppingToken);
                     }
                     else if (baseMessage is ClearAutoLogonRequest)
                     {
                         _sessionManager.ClearAutoLogonCredentials();
-                    }
-                    else if (baseMessage is TriggerLoginRequest triggerLogin)
-                    {
-                        // Store credentials and send to credential provider if connected
-                        _currentUsername = triggerLogin.Username;
-                        _currentPassword = triggerLogin.Password;
-                        _currentDomain = triggerLogin.Domain;
-                        _logger.LogInformation("Received trigger login request for user: {Username}", triggerLogin.Username);
-                        
-                        // Send the trigger message using proper serialization
-                        var triggerMessage = JsonMessageSerializer.Serialize(triggerLogin);
-                        await writer.WriteLineAsync(triggerMessage);
-                        await writer.FlushAsync();
-                        
-                        _logger.LogInformation("Sent TriggerLogin message to credential provider");
                     }
                     else if (baseMessage is CredentialProviderConnected credProviderConnected)
                     {
@@ -237,6 +239,10 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                     else if (baseMessage is CredentialRequest credRequest)
                     {
                         _logger.LogInformation("Received credential request from process {ProcessId}", credRequest.ProcessId);
+                        
+                        // Check for cancellation before processing credential request
+                        if (stoppingToken.IsCancellationRequested)
+                            break;
                         
                         // Send current credentials if available
                         if (!string.IsNullOrEmpty(_currentUsername) && !string.IsNullOrEmpty(_currentPassword))
@@ -250,7 +256,7 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                             };
                             var responseMessage = JsonMessageSerializer.Serialize(credentialResponse);
                             await writer.WriteLineAsync(responseMessage);
-                            await writer.FlushAsync();
+                            await writer.FlushAsync(stoppingToken);
                             _logger.LogInformation("Sent credentials to credential provider process {ProcessId}", credRequest.ProcessId);
                         }
                         else
@@ -264,7 +270,7 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                             };
                             var responseMessage = JsonMessageSerializer.Serialize(errorResponse);
                             await writer.WriteLineAsync(responseMessage);
-                            await writer.FlushAsync();
+                            await writer.FlushAsync(stoppingToken);
                             _logger.LogWarning("No credentials available for credential provider request from process {ProcessId}", credRequest.ProcessId);
                         }
                     }
@@ -273,12 +279,33 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                         _logger.LogWarning("Received an unknown message type.");
                     }
 
-                    // Check for cancellation again after processing the message
-                    stoppingToken.ThrowIfCancellationRequested();
+                    // Check for cancellation after processing the message
+                    if (stoppingToken.IsCancellationRequested)
+                        break;
                 }
 
                 // Introduce a short delay to prevent a tight loop when no data is available
                 await Task.Delay(100, stoppingToken);
+            }
+            }
+            finally
+            {
+                // Safely dispose of the writer, handling broken pipe scenarios
+                if (writer != null)
+                {
+                    try
+                    {
+                        await writer.DisposeAsync();
+                    }
+                    catch (IOException ex) when (ex.Message.Contains("Pipe is broken"))
+                    {
+                        _logger.LogDebug("Pipe was broken during writer disposal, this is expected during shutdown.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error disposing StreamWriter.");
+                    }
+                }
             }
         }
         catch (OperationCanceledException)
@@ -304,10 +331,16 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
             return;
         }
 
+        // Check for cancellation before starting I/O operations
+        if (cancellationToken.IsCancellationRequested)
+            return;
+
         try
         {
+            var serializedMessage = JsonMessageSerializer.Serialize(message);
+            
             await using var writer = new StreamWriter(_server, leaveOpen: true);
-            await writer.WriteLineAsync(JsonMessageSerializer.Serialize(message));
+            await writer.WriteLineAsync(serializedMessage);
             await writer.FlushAsync(cancellationToken);
         }
         catch (Exception ex)
@@ -315,18 +348,23 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
             _logger.LogError(ex, "Failed to send message to client.");
         }
     }
-    
-    public static IntPtr ConvertPipeSecurityToSecurityDescriptor(PipeSecurity pipeSecurity)
+
+    public void StoreCredentials(string username, string password, string domain)
     {
-        string stringSecurityDescriptor = pipeSecurity.GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        _currentUsername = username;
+        _currentPassword = password;
+        _currentDomain = domain;
+        _logger.LogInformation("Stored credentials for user: {Username} (domain: {Domain}) - Password length: {PasswordLength}", 
+            username, string.IsNullOrEmpty(domain) ? "local" : domain, password?.Length ?? 0);
+    }
 
-        IntPtr securityDescriptor = IntPtr.Zero;
-        uint securityDescriptorSize = 0;
-        if (!ConvertStringSecurityDescriptorToSecurityDescriptor(stringSecurityDescriptor, 1, out securityDescriptor, out securityDescriptorSize))
-        {
-            throw new Win32Exception(Marshal.GetLastWin32Error());
-        }
-
-        return securityDescriptor;
+    public async Task TriggerLoginAsync()
+    {
+        _logger.LogInformation("Triggering credential provider login");
+        
+        var triggerLoginRequest = new TriggerLoginRequest();
+        await SendMessageAsync(triggerLoginRequest, CancellationToken.None);
+        
+        _logger.LogInformation("Trigger login message sent to credential provider");
     }
 }

@@ -20,40 +20,40 @@ public class CredentialProviderSessionManager : ISessionManager
         _logger = logger;
     }
 
-    public void SignInGamerAccount()
+    public async Task SignInGamerAccountAsync()
     {
-        _logger.LogInformation("Signing in gamer account via credential provider");
-        _ = Task.Run(async () => 
+        _logger.LogInformation("Storing gamer account credentials for credential provider");
+        try
         {
-            try
-            {
-                await _credentialProviderService.TriggerLoginAsync(
-                    _options.GamerAccountUsername, 
-                    _options.GamerAccountPassword);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to trigger gamer account login");
-            }
-        });
+            _credentialProviderService.StoreCredentials(
+                _options.GamerAccountUsername, 
+                _options.GamerAccountPassword);
+            
+            // Trigger the credential provider to attempt login
+            await _credentialProviderService.TriggerLoginAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to store gamer account credentials or trigger login");
+        }
     }
 
-    public void SignInTournamentAccount()
+    public async Task SignInTournamentAccountAsync()
     {
-        _logger.LogInformation("Signing in tournament account via credential provider");
-        _ = Task.Run(async () => 
+        _logger.LogInformation("Storing tournament account credentials for credential provider");
+        try
         {
-            try
-            {
-                await _credentialProviderService.TriggerLoginAsync(
-                    _options.TournamentAccountUsername, 
-                    _options.TournamentAccountPassword);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to trigger tournament account login");
-            }
-        });
+            _credentialProviderService.StoreCredentials(
+                _options.TournamentAccountUsername, 
+                _options.TournamentAccountPassword);
+            
+            // Trigger the credential provider to attempt login
+            await _credentialProviderService.TriggerLoginAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to store tournament account credentials or trigger login");
+        }
     }
 
     public void SignOut()
@@ -64,8 +64,15 @@ public class CredentialProviderSessionManager : ISessionManager
 
     public void ClearAutoLogonCredentials()
     {
-        _logger.LogInformation("Auto-logon credentials cleared (no-op for credential provider)");
-        // No need to clear registry with credential provider approach
+        _logger.LogInformation("Clearing stored credentials for credential provider");
+        try
+        {
+            _credentialProviderService.StoreCredentials("", "", "");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear stored credentials");
+        }
     }
 
     private void LogoffInteractiveSession()

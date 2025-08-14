@@ -29,7 +29,7 @@ public class Timekeeper : IDisposable
         _2MinuteWarningTimer = new Timer(ShowMinuteWarning!, 2, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public void StartSession(DateTimeOffset startTime, DateTimeOffset endTime)
+    public async Task StartSessionAsync(DateTimeOffset startTime, DateTimeOffset endTime)
     {
         lock (_lock)
         {
@@ -69,13 +69,19 @@ public class Timekeeper : IDisposable
             
             _reservationManager.StartReservation(startTime, endTime);
 
-            _logger.LogInformation($"Session started. Will end at {endTime}.");
-            _sessionManager.SignInGamerAccount();
+            _logger.LogInformation("Session started. Will end at {EndTime}", endTime);
         }
+        
+        // Call sign-in outside of lock to avoid blocking
+        await _sessionManager.SignInGamerAccountAsync();
     }
 
-    public void ExtendSession(DateTimeOffset newEndTime)
+    public async Task ExtendSessionAsync(DateTimeOffset newEndTime)
     {
+        int deltaMinutes = 0;
+        int minutesUntilEnd = 0;
+        bool canExtend = false;
+        
         lock (_lock)
         {
             if (newEndTime <= DateTimeOffset.UtcNow)
@@ -95,28 +101,34 @@ public class Timekeeper : IDisposable
                 {
                     _10MinuteWarningTimer.Change(_10MinutesBeforeEnd - DateTimeOffset.UtcNow, Timeout.InfiniteTimeSpan);
                 }
-                var deltaMinutes = Convert.ToInt32((newEndTime - _sessionEndTime).TotalMinutes);
+                deltaMinutes = Convert.ToInt32((newEndTime - _sessionEndTime).TotalMinutes);
                 _sessionEndTime = newEndTime;
                 var duration = newEndTime - DateTimeOffset.UtcNow;
-                var minutesUntilEnd = Convert.ToInt32(duration.TotalMinutes);
+                minutesUntilEnd = Convert.ToInt32(duration.TotalMinutes);
                 _timer.Change(duration, Timeout.InfiniteTimeSpan);
                 _reservationManager.ExtendReservation(newEndTime);
-                _logger.LogInformation($"Session extended. New end time: {newEndTime}.");
-                _pipeServer.SendMessageAsync(new TextMessage{ Content = $"Session extended by {deltaMinutes} minutes. Your session will end in {minutesUntilEnd} minutes." }, CancellationToken.None).Wait();
-                _logger.LogInformation("Time extension message sent down pipe.");
+                _logger.LogInformation("Session extended. New end time: {NewEndTime}", newEndTime);
+                canExtend = true;
             }
             else
             {
                 _logger.LogInformation("New end time must be later than the current end time.");
             }
         }
+        
+        // Send message outside of lock
+        if (canExtend)
+        {
+            await _pipeServer.SendMessageAsync(new TextMessage{ Content = $"Session extended by {deltaMinutes} minutes. Your session will end in {minutesUntilEnd} minutes." }, CancellationToken.None);
+            _logger.LogInformation("Time extension message sent down pipe.");
+        }
     }
     
-    private void ShowMinuteWarning(object? state)
+    private async void ShowMinuteWarning(object? state)
     {
         var minutes = (int) state!;
-        _pipeServer.SendMessageAsync(new TextMessage{ Content = $"Your session will end in {minutes} minutes." }, CancellationToken.None).Wait();
-        _logger.LogInformation($"Sent {minutes} minute warning.");
+        await _pipeServer.SendMessageAsync(new TextMessage{ Content = $"Your session will end in {minutes} minutes." }, CancellationToken.None);
+        _logger.LogInformation("Sent {Minutes} minute warning", minutes);
     }
 
     public void EndSession()

@@ -20,14 +20,14 @@ public class ToastNotificationService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        stoppingToken.Register(() => _logger.LogInformation($"{PipeName} ToastNotificationService is stopping."));
+        stoppingToken.Register(() => _logger.LogInformation("{PipeName} ToastNotificationService is stopping", PipeName));
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
-                _logger.LogInformation($"Connecting to {PipeName} server...");
+                _logger.LogInformation("Connecting to {PipeName} server...", PipeName);
 
                 await client.ConnectAsync(stoppingToken);
                 _logger.LogInformation("Connected to server.");

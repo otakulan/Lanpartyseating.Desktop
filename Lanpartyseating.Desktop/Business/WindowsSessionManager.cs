@@ -14,14 +14,16 @@ public class WindowsSessionManager : ISessionManager
     {
         _options = options.Value;
     }
-    public void SignInGamerAccount()
+    public Task SignInGamerAccountAsync()
     {
         LoginInteractiveSession(_options.GamerAccountUsername, _options.GamerAccountPassword);
+        return Task.CompletedTask;
     }
 
-    public void SignInTournamentAccount()
+    public Task SignInTournamentAccountAsync()
     {
         LoginInteractiveSession(_options.TournamentAccountUsername, _options.TournamentAccountPassword);
+        return Task.CompletedTask;
     }
 
     public void SignOut()

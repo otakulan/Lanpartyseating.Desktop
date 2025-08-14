@@ -36,30 +36,39 @@ internal class Program
                 services.AddSingleton<Callbacks>();
                 services.AddSingleton<ICredentialProviderService, CredentialProviderService>();
                 
-                var debugOptions = services.BuildServiceProvider().GetRequiredService<IOptions<DebugOptions>>().Value;
+                // Register all possible session managers
+                services.AddSingleton<DummySessionManager>();
+                services.AddSingleton<CredentialProviderSessionManager>();
+                services.AddSingleton<WindowsSessionManager>();
                 
-                if (debugOptions.UseDummySessionManager)
+                // Simple conditional registration - resolve at startup, not during build
+                services.AddSingleton<ISessionManager>(serviceProvider =>
                 {
-                    services.AddSingleton<ISessionManager, DummySessionManager>();
-                }
-                else if (debugOptions.UseCredentialProvider)
-                {
-                    // Use the new credential provider session manager
-                    services.AddSingleton<ISessionManager, CredentialProviderSessionManager>();
-                    // Keep the old one available if needed
-                    services.AddSingleton<WindowsSessionManager>();
-                }
-                else
-                {
-                    // Use the old registry-based approach
-                    services.AddSingleton<ISessionManager, WindowsSessionManager>();
-                }
+                    var debugOptions = serviceProvider.GetRequiredService<IOptions<DebugOptions>>().Value;
+                    var seatingOptions = serviceProvider.GetRequiredService<IOptions<SeatingOptions>>().Value;
+                    
+                    if (debugOptions.UseDummySessionManager)
+                    {
+                        return serviceProvider.GetRequiredService<DummySessionManager>();
+                    }
+                    else if (seatingOptions.UseCredentialProvider)
+                    {
+                        return serviceProvider.GetRequiredService<CredentialProviderSessionManager>();
+                    }
+                    else
+                    {
+                        return serviceProvider.GetRequiredService<WindowsSessionManager>();
+                    }
+                });
                 services.AddSingleton<Utils>();
                 services.AddHostedService<Worker>();
                 services.AddSingleton<ReservationManager>();
+                
+                // Register NamedPipeServerHostedService properly
                 services.AddSingleton<NamedPipeServerHostedService>();
                 services.AddSingleton<INamedPipeServerService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
-                services.AddHostedService<NamedPipeServerHostedService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
+                services.AddHostedService(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
+                
                 services.AddSingleton<Timekeeper>();
             })
             .Build();

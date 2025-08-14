@@ -1,31 +1,44 @@
-using Lanpartyseating.Desktop.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Lanpartyseating.Desktop.Abstractions;
 
 namespace Lanpartyseating.Desktop.Business;
 
 public class CredentialProviderService : ICredentialProviderService
 {
     private readonly ILogger<CredentialProviderService> _logger;
-    private readonly INamedPipeServerService _namedPipeServerService;
+    private readonly IServiceProvider _serviceProvider;
 
-    public CredentialProviderService(ILogger<CredentialProviderService> logger, INamedPipeServerService namedPipeServerService)
+    public CredentialProviderService(ILogger<CredentialProviderService> logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
-        _namedPipeServerService = namedPipeServerService;
+        _serviceProvider = serviceProvider;
     }
 
-    public async Task TriggerLoginAsync(string username, string password, string? domain = null, CancellationToken cancellationToken = default)
+    public void StoreCredentials(string username, string password, string? domain = null)
     {
-        _logger.LogInformation("Triggering login for user: {Username}", username);
+        _logger.LogInformation("Storing credentials for user: {Username} (domain: {Domain}, password length: {PasswordLength})", 
+            username, domain ?? "local", password?.Length ?? 0);
         
-        var triggerMessage = new TriggerLoginRequest
-        {
-            Username = username,
-            Password = password,
-            Domain = domain ?? ""
-        };
+        // Lazy resolve the named pipe service to avoid circular dependency
+        var namedPipeServerService = _serviceProvider.GetRequiredService<INamedPipeServerService>();
+        
+        // Store credentials in the pipe server for when credential provider requests them
+        namedPipeServerService.StoreCredentials(username, password ?? "", domain ?? "");
+        
+        _logger.LogInformation("Credentials stored for credential provider");
+    }
 
-        await _namedPipeServerService.SendMessageAsync(triggerMessage, cancellationToken);
+    public async Task TriggerLoginAsync()
+    {
+        _logger.LogInformation("Triggering credential provider login");
+        
+        // Lazy resolve the named pipe service to avoid circular dependency
+        var namedPipeServerService = _serviceProvider.GetRequiredService<INamedPipeServerService>();
+        
+        // Send trigger login message to credential provider
+        await namedPipeServerService.TriggerLoginAsync();
+        
         _logger.LogInformation("Login trigger sent to credential provider");
     }
 }

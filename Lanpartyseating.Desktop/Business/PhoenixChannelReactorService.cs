@@ -33,7 +33,7 @@ public class PhoenixChannelReactorService
     
     public void Connect()
     {
-        _logger.LogInformation($"Connecting to Phoenix channel at endpoint \"{_options.Value.WebsocketEndpoint}\"");
+        _logger.LogInformation("Connecting to Phoenix channel at endpoint \"{WebsocketEndpoint}\"", _options.Value.WebsocketEndpoint);
         _socket.Connect();
         _desktopChannel.Join();
     }
