@@ -14,11 +14,6 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
     private readonly ISessionManager _sessionManager;
     private const string PipeName = "Lanpartyseating.Desktop";
     private NamedPipeServerStream? _server;
-    
-    // Store current credentials for credential provider requests
-    private string? _currentUsername;
-    private string? _currentPassword;
-    private string? _currentDomain;
 
     public NamedPipeServerHostedService(ILogger<NamedPipeServerHostedService> logger, ReservationManager reservationManager, ISessionManager sessionManager)
     {
@@ -236,44 +231,6 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
                         _logger.LogInformation("Credential provider connected from process {ProcessId} at {Timestamp}", 
                             credProviderConnected.ProcessId, credProviderConnected.Timestamp);
                     }
-                    else if (baseMessage is CredentialRequest credRequest)
-                    {
-                        _logger.LogInformation("Received credential request from process {ProcessId}", credRequest.ProcessId);
-                        
-                        // Check for cancellation before processing credential request
-                        if (stoppingToken.IsCancellationRequested)
-                            break;
-                        
-                        // Send current credentials if available
-                        if (!string.IsNullOrEmpty(_currentUsername) && !string.IsNullOrEmpty(_currentPassword))
-                        {
-                            var credentialResponse = new CredentialResponse
-                            {
-                                Username = _currentUsername,
-                                Password = _currentPassword,
-                                Domain = _currentDomain,
-                                Success = true
-                            };
-                            var responseMessage = JsonMessageSerializer.Serialize(credentialResponse);
-                            await writer.WriteLineAsync(responseMessage);
-                            await writer.FlushAsync(stoppingToken);
-                            _logger.LogInformation("Sent credentials to credential provider process {ProcessId}", credRequest.ProcessId);
-                        }
-                        else
-                        {
-                            var errorResponse = new CredentialResponse
-                            {
-                                Username = "",
-                                Password = "",
-                                Success = false,
-                                ErrorMessage = "No credentials available"
-                            };
-                            var responseMessage = JsonMessageSerializer.Serialize(errorResponse);
-                            await writer.WriteLineAsync(responseMessage);
-                            await writer.FlushAsync(stoppingToken);
-                            _logger.LogWarning("No credentials available for credential provider request from process {ProcessId}", credRequest.ProcessId);
-                        }
-                    }
                     else
                     {
                         _logger.LogWarning("Received an unknown message type.");
@@ -349,22 +306,19 @@ public class NamedPipeServerHostedService : BackgroundService, INamedPipeServerS
         }
     }
 
-    public void StoreCredentials(string username, string password, string domain)
+    public async Task TriggerLoginAsync(string username, string password, string? domain = null)
     {
-        _currentUsername = username;
-        _currentPassword = password;
-        _currentDomain = domain;
-        _logger.LogInformation("Stored credentials for user: {Username} (domain: {Domain}) - Password length: {PasswordLength}", 
+        _logger.LogInformation("Triggering credential provider login for user: {Username} (domain: {Domain}) - Password length: {PasswordLength}", 
             username, string.IsNullOrEmpty(domain) ? "local" : domain, password?.Length ?? 0);
-    }
-
-    public async Task TriggerLoginAsync()
-    {
-        _logger.LogInformation("Triggering credential provider login");
         
-        var triggerLoginRequest = new TriggerLoginRequest();
+        var triggerLoginRequest = new TriggerLoginRequest
+        {
+            Username = username,
+            Password = password,
+            Domain = domain
+        };
         await SendMessageAsync(triggerLoginRequest, CancellationToken.None);
         
-        _logger.LogInformation("Trigger login message sent to credential provider");
+        _logger.LogInformation("Trigger login message with credentials sent to credential provider");
     }
 }

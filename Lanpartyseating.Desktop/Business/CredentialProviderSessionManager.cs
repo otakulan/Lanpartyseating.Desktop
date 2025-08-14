@@ -22,37 +22,33 @@ public class CredentialProviderSessionManager : ISessionManager
 
     public async Task SignInGamerAccountAsync()
     {
-        _logger.LogInformation("Storing gamer account credentials for credential provider");
+        _logger.LogInformation("Triggering gamer account login via credential provider");
         try
         {
-            _credentialProviderService.StoreCredentials(
+            // Send credentials directly with trigger - no separate storage needed
+            await _credentialProviderService.TriggerLoginAsync(
                 _options.GamerAccountUsername, 
                 _options.GamerAccountPassword);
-            
-            // Trigger the credential provider to attempt login
-            await _credentialProviderService.TriggerLoginAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to store gamer account credentials or trigger login");
+            _logger.LogError(ex, "Failed to trigger gamer account login");
         }
     }
 
     public async Task SignInTournamentAccountAsync()
     {
-        _logger.LogInformation("Storing tournament account credentials for credential provider");
+        _logger.LogInformation("Triggering tournament account login via credential provider");
         try
         {
-            _credentialProviderService.StoreCredentials(
+            // Send credentials directly with trigger - no separate storage needed
+            await _credentialProviderService.TriggerLoginAsync(
                 _options.TournamentAccountUsername, 
                 _options.TournamentAccountPassword);
-            
-            // Trigger the credential provider to attempt login
-            await _credentialProviderService.TriggerLoginAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to store tournament account credentials or trigger login");
+            _logger.LogError(ex, "Failed to trigger tournament account login");
         }
     }
 
@@ -64,15 +60,9 @@ public class CredentialProviderSessionManager : ISessionManager
 
     public void ClearAutoLogonCredentials()
     {
-        _logger.LogInformation("Clearing stored credentials for credential provider");
-        try
-        {
-            _credentialProviderService.StoreCredentials("", "", "");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to clear stored credentials");
-        }
+        _logger.LogInformation("Clear auto logon credentials called - no stored credentials to clear in new approach");
+        // No action needed since we don't store credentials anymore
+        // The credential provider will simply not receive any trigger messages
     }
 
     private void LogoffInteractiveSession()

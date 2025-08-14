@@ -2,6 +2,5 @@ namespace Lanpartyseating.Desktop.Business;
 
 public interface ICredentialProviderService
 {
-    void StoreCredentials(string username, string password, string? domain = null);
-    Task TriggerLoginAsync();
+    Task TriggerLoginAsync(string username, string password, string? domain = null);
 }

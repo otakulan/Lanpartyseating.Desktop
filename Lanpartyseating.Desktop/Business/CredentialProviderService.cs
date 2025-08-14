@@ -15,30 +15,17 @@ public class CredentialProviderService : ICredentialProviderService
         _serviceProvider = serviceProvider;
     }
 
-    public void StoreCredentials(string username, string password, string? domain = null)
+    public async Task TriggerLoginAsync(string username, string password, string? domain = null)
     {
-        _logger.LogInformation("Storing credentials for user: {Username} (domain: {Domain}, password length: {PasswordLength})", 
+        _logger.LogInformation("Triggering credential provider login for user: {Username} (domain: {Domain}, password length: {PasswordLength})", 
             username, domain ?? "local", password?.Length ?? 0);
         
         // Lazy resolve the named pipe service to avoid circular dependency
         var namedPipeServerService = _serviceProvider.GetRequiredService<INamedPipeServerService>();
         
-        // Store credentials in the pipe server for when credential provider requests them
-        namedPipeServerService.StoreCredentials(username, password ?? "", domain ?? "");
+        // Send trigger login message with credentials directly to credential provider
+        await namedPipeServerService.TriggerLoginAsync(username, password ?? "", domain);
         
-        _logger.LogInformation("Credentials stored for credential provider");
-    }
-
-    public async Task TriggerLoginAsync()
-    {
-        _logger.LogInformation("Triggering credential provider login");
-        
-        // Lazy resolve the named pipe service to avoid circular dependency
-        var namedPipeServerService = _serviceProvider.GetRequiredService<INamedPipeServerService>();
-        
-        // Send trigger login message to credential provider
-        await namedPipeServerService.TriggerLoginAsync();
-        
-        _logger.LogInformation("Login trigger sent to credential provider");
+        _logger.LogInformation("Login trigger with credentials sent to credential provider");
     }
 }
