@@ -41,7 +41,7 @@ jobs:
     - name: Build
       run: dotnet build LanpartySeating.Desktop.Installer/LanpartySeating.Desktop.Installer.wixproj --configuration Release --property:Version=1.0.22 /p:InstallerPlatform=${{ matrix.arch }}
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: LanpartySeating.Desktop.Installer (${{ matrix.arch }})
         path: |
