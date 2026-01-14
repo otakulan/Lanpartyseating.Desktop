@@ -10,7 +10,7 @@ public class ToastNotificationService : BackgroundService
 {
     private readonly ILogger<ToastNotificationService> _logger;
     private readonly TrayIcon _trayIcon;
-    private const string PipeName = "Lanpartyseating.Desktop";
+    private const string PipeName = "Lanpartyseating.Desktop.Tray";
 
     public ToastNotificationService(ILogger<ToastNotificationService> logger, TrayIcon trayIcon)
     {

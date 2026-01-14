@@ -64,10 +64,15 @@ internal class Program
                 services.AddHostedService<Worker>();
                 services.AddSingleton<ReservationManager>();
                 
-                // Register NamedPipeServerHostedService properly
-                services.AddSingleton<NamedPipeServerHostedService>();
-                services.AddSingleton<INamedPipeServerService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
-                services.AddHostedService(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
+                // Register TrayPipeServerHostedService
+                services.AddSingleton<TrayPipeServerHostedService>();
+                services.AddSingleton<ITrayPipeService>(sp => sp.GetRequiredService<TrayPipeServerHostedService>());
+                services.AddHostedService(sp => sp.GetRequiredService<TrayPipeServerHostedService>());
+
+                // Register CredentialProviderPipeServerHostedService
+                services.AddSingleton<CredentialProviderPipeServerHostedService>();
+                services.AddSingleton<ICredentialProviderPipeService>(sp => sp.GetRequiredService<CredentialProviderPipeServerHostedService>());
+                services.AddHostedService(sp => sp.GetRequiredService<CredentialProviderPipeServerHostedService>());
                 
                 services.AddSingleton<Timekeeper>();
             })

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Lanpartyseating.Desktop.Abstractions;
 
 namespace Lanpartyseating.Desktop.Business;
 
@@ -17,15 +16,15 @@ public class CredentialProviderService : ICredentialProviderService
 
     public async Task TriggerLoginAsync(string username, string password, string? domain = null)
     {
-        _logger.LogInformation("Triggering credential provider login for user: {Username} (domain: {Domain}, password length: {PasswordLength})", 
+        _logger.LogInformation("Triggering credential provider login for user: {Username} (domain: {Domain}, password length: {PasswordLength})",
             username, domain ?? "local", password?.Length ?? 0);
-        
-        // Lazy resolve the named pipe service to avoid circular dependency
-        var namedPipeServerService = _serviceProvider.GetRequiredService<INamedPipeServerService>();
-        
+
+        // Lazy resolve the credential provider pipe service to avoid circular dependency
+        var credentialProviderPipeService = _serviceProvider.GetRequiredService<ICredentialProviderPipeService>();
+
         // Send trigger login message with credentials directly to credential provider
-        await namedPipeServerService.TriggerLoginAsync(username, password ?? "", domain);
-        
+        await credentialProviderPipeService.TriggerLoginAsync(username, password ?? "", domain);
+
         _logger.LogInformation("Login trigger with credentials sent to credential provider");
     }
 }

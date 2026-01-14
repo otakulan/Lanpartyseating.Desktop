@@ -7,7 +7,7 @@ public class Timekeeper : IDisposable
 {
     private readonly ILogger _logger;
     private readonly ISessionManager _sessionManager;
-    private readonly INamedPipeServerService _pipeServer;
+    private readonly ITrayPipeService _trayPipeService;
     private readonly ReservationManager _reservationManager;
     private readonly Timer _timer;
     private DateTimeOffset _sessionEndTime;
@@ -17,12 +17,12 @@ public class Timekeeper : IDisposable
 
     public Timekeeper(ILogger<Timekeeper> logger,
         ISessionManager sessionManager,
-        INamedPipeServerService pipeServer,
+        ITrayPipeService trayPipeService,
         ReservationManager reservationManager)
     {
         _logger = logger;
         _sessionManager = sessionManager;
-        _pipeServer = pipeServer;
+        _trayPipeService = trayPipeService;
         _reservationManager = reservationManager;
         _timer = new Timer(SessionEnded!, null, Timeout.Infinite, Timeout.Infinite);
         _10MinuteWarningTimer = new Timer(ShowMinuteWarning!, 10, Timeout.Infinite, Timeout.Infinite);
@@ -119,7 +119,7 @@ public class Timekeeper : IDisposable
         // Send message outside of lock
         if (canExtend)
         {
-            await _pipeServer.SendMessageAsync(new TextMessage{ Content = $"Session extended by {deltaMinutes} minutes. Your session will end in {minutesUntilEnd} minutes." }, CancellationToken.None);
+            await _trayPipeService.SendMessageAsync(new TextMessage{ Content = $"Session extended by {deltaMinutes} minutes. Your session will end in {minutesUntilEnd} minutes." }, CancellationToken.None);
             _logger.LogInformation("Time extension message sent down pipe.");
         }
     }
@@ -127,7 +127,7 @@ public class Timekeeper : IDisposable
     private async void ShowMinuteWarning(object? state)
     {
         var minutes = (int) state!;
-        await _pipeServer.SendMessageAsync(new TextMessage{ Content = $"Your session will end in {minutes} minutes." }, CancellationToken.None);
+        await _trayPipeService.SendMessageAsync(new TextMessage{ Content = $"Your session will end in {minutes} minutes." }, CancellationToken.None);
         _logger.LogInformation("Sent {Minutes} minute warning", minutes);
     }
 
