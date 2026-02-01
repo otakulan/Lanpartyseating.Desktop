@@ -20,9 +20,26 @@ jobs:
         - arm64
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+     - uses: actions/checkout@v4
+       with:
+         submodules: recursive
+         fetch-depth: 0  # Need full history for tags
+    - name: Determine Version
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_REF -match '^refs/tags/v(.+)$') {
+          # Release: use tag version directly (e.g., v1.2.0 -> 1.2.0)
+          $version = $Matches[1]
+          $is_release = "true"
+        } else {
+          # Dev build: use high version number for testing
+          $version = "255.0.${{ github.run_number }}"
+          $is_release = "false"
+        }
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+        echo "is_release=$is_release" >> $env:GITHUB_OUTPUT
+        echo "Computed version: $version (release: $is_release)"
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:

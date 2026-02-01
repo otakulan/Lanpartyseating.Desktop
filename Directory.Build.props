@@ -1,0 +1,4 @@
+<Project>
+  <!-- Version is determined by CI from git tags -->
+  <!-- Dev builds use 255.0.x, releases use the tag version -->
+</Project>
