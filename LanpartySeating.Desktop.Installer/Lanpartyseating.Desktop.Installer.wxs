@@ -19,6 +19,8 @@
             <!-- Reference the component group inside the feature. -->
             <ComponentGroupRef Id="ServiceApplicationFilesComponentGroup" />
             <ComponentRef Id="ConfigPermissions" />
+            <ComponentRef Id="CredentialProviderDll" />
+            <ComponentRef Id="CredentialProviderRegistry" />
         </Feature>
         
         <Feature Id="TrayApplication" Title="Lanpartyseating.Desktop.Tray Application" Level="1">
@@ -39,6 +41,29 @@
         <!-- Define the ProgramData directory -->
         <StandardDirectory Id="CommonAppDataFolder">
             <Directory Id="CONFIGFOLDER" Name="$(ServiceFolderName)" />
+        </StandardDirectory>
+
+        <!-- Install credential provider DLL to System32 -->
+        <StandardDirectory Id="System64Folder">
+            <Component Id="CredentialProviderDll" Bitness="always64" Guid="{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}">
+                <File Id="RdpCredProvDll" Source="$(CredProvPath)\RdpCredProv.dll" KeyPath="yes" />
+            </Component>
+        </StandardDirectory>
+
+        <!-- Credential provider registry keys -->
+        <StandardDirectory Id="System64Folder">
+            <Component Id="CredentialProviderRegistry" Bitness="always64" Guid="{D5E6F7A8-B9C0-4D1E-9F2A-3B4C5D6E7F8A}">
+                <RegistryKey Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{DD2ACC5E-EF4B-4C89-B296-15489C9FAC47}">
+                    <RegistryValue Type="string" Value="RdpCredProv" KeyPath="yes" />
+                </RegistryKey>
+                <RegistryKey Root="HKCR" Key="CLSID\{DD2ACC5E-EF4B-4C89-B296-15489C9FAC47}">
+                    <RegistryValue Type="string" Value="RdpCredProv" />
+                </RegistryKey>
+                <RegistryKey Root="HKCR" Key="CLSID\{DD2ACC5E-EF4B-4C89-B296-15489C9FAC47}\InprocServer32">
+                    <RegistryValue Type="string" Value="RdpCredProv.dll" />
+                    <RegistryValue Name="ThreadingModel" Type="string" Value="Apartment" />
+                </RegistryKey>
+            </Component>
         </StandardDirectory>
 
         <!-- Shortcut directory -->
