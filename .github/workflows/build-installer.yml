@@ -33,12 +33,12 @@ jobs:
       shell: pwsh
       run: |
         if ($env:GITHUB_REF -match '^refs/tags/v(.+)$') {
+          # Release: use tag version directly (e.g., v1.2.0 -> 1.2.0)
           $version = $Matches[1]
           $is_release = "true"
         } else {
-          [xml]$props = Get-Content "Directory.Build.props"
-          $base = $props.Project.PropertyGroup.VersionPrefix
-          $version = "$base-dev.${{ github.run_number }}"
+          # Dev build: use high version number for testing
+          $version = "255.0.${{ github.run_number }}"
           $is_release = "false"
         }
         echo "version=$version" >> $env:GITHUB_OUTPUT

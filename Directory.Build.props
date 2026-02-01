@@ -1,8 +1,4 @@
 <Project>
-  <PropertyGroup>
-    <!-- Base version for development; releases use git tags -->
-    <VersionPrefix>1.1.0</VersionPrefix>
-    <!-- Dev builds get suffix from CI; release builds have no suffix -->
-    <VersionSuffix Condition="'$(VersionSuffix)' == ''">dev</VersionSuffix>
-  </PropertyGroup>
+  <!-- Version is determined by CI from git tags -->
+  <!-- Dev builds use 255.0.x, releases use the tag version -->
 </Project>
