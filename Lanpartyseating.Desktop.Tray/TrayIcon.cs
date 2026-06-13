@@ -5,7 +5,7 @@ namespace Lanpartyseating.Desktop.Tray;
 public class TrayIcon
 {
     private readonly IHostApplicationLifetime _hostApplicationLifetime;
-    public NotifyIcon _trayIcon { get; private set; }
+    public NotifyIcon _trayIcon { get; private set; } = null!;
     
     public TrayIcon(IHostApplicationLifetime hostApplicationLifetime)
     {

@@ -12,14 +12,16 @@ public class DummySessionManager : ISessionManager
         _logger.LogInformation("The dummy session manager is in use");
     }
 
-    public void SignInGamerAccount()
+    public Task SignInGamerAccountAsync()
     {
         _logger.LogInformation("The client would have logged in an interactive session for the gamer account now");
+        return Task.CompletedTask;
     }
 
-    public void SignInTournamentAccount()
+    public Task SignInTournamentAccountAsync()
     {
         _logger.LogInformation("The client would have logged in an interactive session for the tournament account now");
+        return Task.CompletedTask;
     }
 
     public void SignOut()

@@ -1,13 +1,14 @@
 ﻿<Project Sdk="WixToolset.Sdk/4.0.3">
     <PropertyGroup>
-        <!-- Default to Version 1.0.0 if not specified via /p:Version=x.x.x from cli -->
-        <Version Condition=" '$(Version)' == '' ">1.0.0</Version>
+        <!-- Version comes from Directory.Build.props or CI via /p:Version=x.x.x -->
         <!-- Propagate version information from msbuild to the WiX project -->
-        <DefineConstants>$(DefineConstants);Version=$(Version);ServicePublishOutput=..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish;TrayPublishOutput=..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish</DefineConstants>
+        <DefineConstants>$(DefineConstants);Version=$(Version);ServicePublishOutput=..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish;TrayPublishOutput=..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish;CredProvPath=CredProv</DefineConstants>
         <OutputType>package</OutputType>
         <TargetFramework>net8.0-windows</TargetFramework>
         <!-- Default to x64 if not specified via /p:InstallerPlatform=x64 or /p:InstallerPlatform=arm64 from cli -->
         <InstallerPlatform Condition=" '$(InstallerPlatform)' == '' ">x64</InstallerPlatform>
+        <!-- Default credential provider version if not specified via /p:CredProvVersion=x.x.x.x from cli -->
+        <CredProvVersion Condition=" '$(CredProvVersion)' == '' ">1.0.0.0</CredProvVersion>
         <OutputName>LanpartySeating.Desktop.Installer-$(InstallerPlatform)</OutputName>
     </PropertyGroup>
     <ItemGroup>
@@ -31,6 +32,11 @@
         <Message Text="InstallerPlatform is $(InstallerPlatform)" Importance="high" />
         <Exec Command="dotnet publish ..\Lanpartyseating.Desktop\Lanpartyseating.Desktop.csproj -c Release -r win-$(InstallerPlatform) -o ..\Lanpartyseating.Desktop\bin\$(Configuration)\net8.0-windows\win-$(InstallerPlatform)\publish\" />
         <Exec Command="dotnet publish ..\Lanpartyseating.Desktop.Tray\Lanpartyseating.Desktop.Tray.csproj -c Release -r win-$(InstallerPlatform) -o ..\Lanpartyseating.Desktop.Tray\bin\$(Configuration)\net8.0-windows10.0.22621.0\win-$(InstallerPlatform)\publish\" />
+    </Target>
+    <!-- Download credential provider DLL for local builds (CI downloads separately) -->
+    <Target Name="DownloadCredentialProvider" BeforeTargets="CustomBeforeBuild" Condition="!Exists('CredProv\RdpCredProv.dll')">
+        <Message Text="Downloading credential provider v$(CredProvVersion) for $(InstallerPlatform)..." Importance="high" />
+        <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$$url = 'https://github.com/otakulan/LanpartySeatingCredProv/releases/download/v$(CredProvVersion)/RdpCredProv-$(CredProvVersion)-$(InstallerPlatform).zip'; Invoke-WebRequest -Uri $$url -OutFile 'credprov.zip'; Expand-Archive -Path 'credprov.zip' -DestinationPath 'CredProv' -Force; Remove-Item 'credprov.zip'&quot;" />
     </Target>
     <ItemGroup>
         <PackageReference Include="WixToolset.Heat" Version="4.0.3" />

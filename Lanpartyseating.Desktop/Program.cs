@@ -34,20 +34,46 @@ internal class Program
                     .BindConfiguration("Debug");
                 services.AddSingleton<PhoenixChannelReactorService>();
                 services.AddSingleton<Callbacks>();
-                if (services.BuildServiceProvider().GetRequiredService<IOptions<DebugOptions>>().Value.UseDummySessionManager)
+                services.AddSingleton<ICredentialProviderService, CredentialProviderService>();
+                
+                // Register all possible session managers
+                services.AddSingleton<DummySessionManager>();
+                services.AddSingleton<CredentialProviderSessionManager>();
+                services.AddSingleton<WindowsSessionManager>();
+                
+                // Simple conditional registration - resolve at startup, not during build
+                services.AddSingleton<ISessionManager>(serviceProvider =>
                 {
-                    services.AddSingleton<ISessionManager, DummySessionManager>();
-                }
-                else
-                {
-                    services.AddSingleton<ISessionManager, WindowsSessionManager>();
-                }
+                    var debugOptions = serviceProvider.GetRequiredService<IOptions<DebugOptions>>().Value;
+                    var seatingOptions = serviceProvider.GetRequiredService<IOptions<SeatingOptions>>().Value;
+                    
+                    if (debugOptions.UseDummySessionManager)
+                    {
+                        return serviceProvider.GetRequiredService<DummySessionManager>();
+                    }
+                    else if (seatingOptions.UseCredentialProvider)
+                    {
+                        return serviceProvider.GetRequiredService<CredentialProviderSessionManager>();
+                    }
+                    else
+                    {
+                        return serviceProvider.GetRequiredService<WindowsSessionManager>();
+                    }
+                });
                 services.AddSingleton<Utils>();
                 services.AddHostedService<Worker>();
                 services.AddSingleton<ReservationManager>();
-                services.AddSingleton<NamedPipeServerHostedService>();
-                services.AddSingleton<INamedPipeServerService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
-                services.AddHostedService<NamedPipeServerHostedService>(sp => sp.GetRequiredService<NamedPipeServerHostedService>());
+                
+                // Register TrayPipeServerHostedService
+                services.AddSingleton<TrayPipeServerHostedService>();
+                services.AddSingleton<ITrayPipeService>(sp => sp.GetRequiredService<TrayPipeServerHostedService>());
+                services.AddHostedService(sp => sp.GetRequiredService<TrayPipeServerHostedService>());
+
+                // Register CredentialProviderPipeServerHostedService
+                services.AddSingleton<CredentialProviderPipeServerHostedService>();
+                services.AddSingleton<ICredentialProviderPipeService>(sp => sp.GetRequiredService<CredentialProviderPipeServerHostedService>());
+                services.AddHostedService(sp => sp.GetRequiredService<CredentialProviderPipeServerHostedService>());
+                
                 services.AddSingleton<Timekeeper>();
             })
             .Build();
