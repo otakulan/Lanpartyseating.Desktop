@@ -81,6 +81,11 @@ public class Timekeeper : IDisposable
         oldTimer?.Dispose();
 
         await _sessionManager.SignInGamerAccountAsync();
+
+        lock (_lock)
+        {
+            _loginCts = null;
+        }
     }
 
     public async Task ExtendSessionAsync(DateTimeOffset newEndTime)
@@ -178,6 +183,11 @@ public class Timekeeper : IDisposable
             if (!_reservationManager.IsReservationActive)
             {
                 _logger.LogInformation("Session end timer fired but reservation is no longer active. Ignoring.");
+                return;
+            }
+            if (_loginCts is not null)
+            {
+                _logger.LogInformation("Session end timer fired but login is still in progress. Ignoring.");
                 return;
             }
 
