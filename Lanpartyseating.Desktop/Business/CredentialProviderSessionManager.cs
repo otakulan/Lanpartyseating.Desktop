@@ -71,7 +71,7 @@ public class CredentialProviderSessionManager : ISessionManager
     {
         // Keep the existing logoff functionality from WindowsSessionManager
         var sessionId = WTSGetActiveConsoleSessionId();
-        WTSLogoffSession(IntPtr.Zero, sessionId, false);
+        WTSLogoffSession(IntPtr.Zero, sessionId, true);
     }
 
     [System.Runtime.InteropServices.DllImport("wtsapi32.dll", SetLastError = true)]
