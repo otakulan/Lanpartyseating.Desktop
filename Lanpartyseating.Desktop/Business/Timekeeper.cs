@@ -195,8 +195,8 @@ public class Timekeeper : IDisposable
             _sessionEndTimer = null;
             _sessionEndTime = DateTimeOffset.MinValue;
             _reservationManager.EndReservation();
-            _sessionManager.SignOut();
         }
+        _sessionManager.SignOut();
     }
 
     public void Dispose()

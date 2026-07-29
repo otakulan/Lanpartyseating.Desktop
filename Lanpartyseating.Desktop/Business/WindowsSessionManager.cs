@@ -69,7 +69,7 @@ public class WindowsSessionManager : ISessionManager
     internal void LogoffInteractiveSession()
     {
         var sessionId = WTSGetActiveConsoleSessionId();
-        WTSLogoffSession(IntPtr.Zero, sessionId, false);
+        WTSLogoffSession(IntPtr.Zero, sessionId, true);
     }
 
     public void ClearAutoLogonCredentials()
