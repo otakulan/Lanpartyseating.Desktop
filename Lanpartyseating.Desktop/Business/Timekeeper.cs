@@ -9,8 +9,10 @@ public class Timekeeper : IDisposable
     private readonly ISessionManager _sessionManager;
     private readonly ITrayPipeService _trayPipeService;
     private readonly ReservationManager _reservationManager;
-    private readonly Timer _timer;
+    private Timer? _sessionEndTimer;
+    private CancellationTokenSource? _loginCts;
     private DateTimeOffset _sessionEndTime;
+    private int _sessionGeneration;
     private readonly object _lock = new();
     private readonly Timer _10MinuteWarningTimer;
     private readonly Timer _2MinuteWarningTimer;
@@ -24,40 +26,42 @@ public class Timekeeper : IDisposable
         _sessionManager = sessionManager;
         _trayPipeService = trayPipeService;
         _reservationManager = reservationManager;
-        _timer = new Timer(SessionEnded!, null, Timeout.Infinite, Timeout.Infinite);
         _10MinuteWarningTimer = new Timer(ShowMinuteWarning!, 10, Timeout.Infinite, Timeout.Infinite);
         _2MinuteWarningTimer = new Timer(ShowMinuteWarning!, 2, Timeout.Infinite, Timeout.Infinite);
     }
 
     public async Task StartSessionAsync(DateTimeOffset startTime, DateTimeOffset endTime)
     {
+        Timer? oldTimer;
+        CancellationTokenSource? oldCts;
+        int generation;
+        var duration = endTime - DateTimeOffset.UtcNow;
+
         lock (_lock)
         {
             if (endTime <= startTime)
             {
                 throw new ArgumentException("End time must be later than start time.");
             }
-            
+
             if (endTime <= DateTimeOffset.UtcNow)
             {
                 throw new ArgumentException("End time must be in the future.");
             }
 
-            _sessionEndTime = endTime;
+            generation = ++_sessionGeneration;
+
             var _2MinutesBeforeEnd = endTime.AddMinutes(-2);
             var _10MinutesBeforeEnd = endTime.AddMinutes(-10);
-            var duration = endTime - DateTimeOffset.UtcNow;
 
-            // If the start time is in the future, delay the timer start
-            if (startTime > DateTimeOffset.UtcNow)
-            {
-                _timer.Change(startTime - DateTimeOffset.UtcNow, Timeout.InfiniteTimeSpan);
-            }
-            else
-            {
-                _timer.Change(duration, Timeout.InfiniteTimeSpan);
-            }
-            
+            oldTimer = _sessionEndTimer;
+            _sessionEndTimer = null;
+            oldCts = _loginCts;
+            _loginCts = new CancellationTokenSource();
+
+            _sessionEndTime = endTime;
+            _sessionEndTimer = new Timer(SessionEnded, generation, duration, Timeout.InfiniteTimeSpan);
+
             if (_2MinutesBeforeEnd > DateTimeOffset.UtcNow)
             {
                 _2MinuteWarningTimer.Change(_2MinutesBeforeEnd - DateTimeOffset.UtcNow, Timeout.InfiniteTimeSpan);
@@ -66,13 +70,16 @@ public class Timekeeper : IDisposable
             {
                 _10MinuteWarningTimer.Change(_10MinutesBeforeEnd - DateTimeOffset.UtcNow, Timeout.InfiniteTimeSpan);
             }
-            
+
             _reservationManager.StartReservation(startTime, endTime);
 
-            _logger.LogInformation("Session started. Will end at {EndTime}", endTime);
+            _logger.LogInformation("Session started (gen {Generation}). Will end at {EndTime}", generation, endTime);
         }
-        
-        // Call sign-in outside of lock to avoid blocking
+
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+        oldTimer?.Dispose();
+
         await _sessionManager.SignInGamerAccountAsync();
     }
 
@@ -81,7 +88,7 @@ public class Timekeeper : IDisposable
         int deltaMinutes = 0;
         int minutesUntilEnd = 0;
         bool canExtend = false;
-        
+
         lock (_lock)
         {
             if (newEndTime <= DateTimeOffset.UtcNow)
@@ -105,7 +112,7 @@ public class Timekeeper : IDisposable
                 _sessionEndTime = newEndTime;
                 var duration = newEndTime - DateTimeOffset.UtcNow;
                 minutesUntilEnd = Convert.ToInt32(duration.TotalMinutes);
-                _timer.Change(duration, Timeout.InfiniteTimeSpan);
+                _sessionEndTimer?.Change(duration, Timeout.InfiniteTimeSpan);
                 _reservationManager.ExtendReservation(newEndTime);
                 _logger.LogInformation("Session extended. New end time: {NewEndTime}", newEndTime);
                 canExtend = true;
@@ -115,42 +122,79 @@ public class Timekeeper : IDisposable
                 _logger.LogInformation("New end time must be later than the current end time.");
             }
         }
-        
-        // Send message outside of lock
+
         if (canExtend)
         {
             await _trayPipeService.SendMessageAsync(new TextMessage{ Content = $"Session extended by {deltaMinutes} minutes. Your session will end in {minutesUntilEnd} minutes." }, CancellationToken.None);
             _logger.LogInformation("Time extension message sent down pipe.");
         }
     }
-    
+
     private async void ShowMinuteWarning(object? state)
     {
-        var minutes = (int) state!;
+        var minutes = (int)state!;
         await _trayPipeService.SendMessageAsync(new TextMessage{ Content = $"Your session will end in {minutes} minutes." }, CancellationToken.None);
         _logger.LogInformation("Sent {Minutes} minute warning", minutes);
     }
 
     public void EndSession()
     {
+        Timer? oldTimer;
+        CancellationTokenSource? oldCts;
+
         lock (_lock)
         {
-            _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            oldTimer = _sessionEndTimer;
+            _sessionEndTimer = null;
+            oldCts = _loginCts;
+            _loginCts = null;
             _sessionEndTime = DateTimeOffset.MinValue;
             _reservationManager.EndReservation();
             _logger.LogInformation("Session forcibly ended.");
+        }
+
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+        oldTimer?.Dispose();
+
+        _sessionManager.SignOut();
+    }
+
+    private void SessionEnded(object? state)
+    {
+        var generation = (int)state!;
+        _logger.LogInformation("Session end timer fired (gen {Generation}).", generation);
+
+        if (generation != Volatile.Read(ref _sessionGeneration))
+        {
+            _logger.LogInformation("Stale session end callback (gen {Gen}) — current gen is {CurrentGen}. Ignoring.",
+                generation, _sessionGeneration);
+            return;
+        }
+
+        lock (_lock)
+        {
+            if (generation != _sessionGeneration) return;
+            if (!_reservationManager.IsReservationActive)
+            {
+                _logger.LogInformation("Session end timer fired but reservation is no longer active. Ignoring.");
+                return;
+            }
+
+            _sessionEndTimer?.Dispose();
+            _sessionEndTimer = null;
+            _sessionEndTime = DateTimeOffset.MinValue;
+            _reservationManager.EndReservation();
             _sessionManager.SignOut();
         }
     }
 
-    private void SessionEnded(object state)
-    {
-        _logger.LogInformation("Session ended.");
-        _sessionManager.SignOut();
-    }
-
     public void Dispose()
     {
-        _timer?.Dispose();
+        _loginCts?.Cancel();
+        _loginCts?.Dispose();
+        _sessionEndTimer?.Dispose();
+        _10MinuteWarningTimer?.Dispose();
+        _2MinuteWarningTimer?.Dispose();
     }
 }
