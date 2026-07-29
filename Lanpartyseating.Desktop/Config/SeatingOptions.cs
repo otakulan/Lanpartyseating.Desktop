@@ -14,5 +14,6 @@ public class SeatingOptions
     public required string TournamentAccountUsername { get; set; }
     [Required(AllowEmptyStrings = true)]
     public required string TournamentAccountPassword { get; set; }
+    public string? WindowsDomain { get; set; }
     public bool UseCredentialProvider { get; set; } = true; // Default to new approach
 }

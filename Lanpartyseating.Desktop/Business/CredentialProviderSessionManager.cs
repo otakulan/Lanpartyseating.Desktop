@@ -28,7 +28,8 @@ public class CredentialProviderSessionManager : ISessionManager
             // Send credentials directly with trigger - no separate storage needed
             await _credentialProviderService.TriggerLoginAsync(
                 _options.GamerAccountUsername, 
-                _options.GamerAccountPassword);
+                _options.GamerAccountPassword,
+                _options.WindowsDomain);
         }
         catch (Exception ex)
         {
@@ -44,7 +45,8 @@ public class CredentialProviderSessionManager : ISessionManager
             // Send credentials directly with trigger - no separate storage needed
             await _credentialProviderService.TriggerLoginAsync(
                 _options.TournamentAccountUsername, 
-                _options.TournamentAccountPassword);
+                _options.TournamentAccountPassword,
+                _options.WindowsDomain);
         }
         catch (Exception ex)
         {
