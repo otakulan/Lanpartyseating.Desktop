@@ -20,10 +20,10 @@ jobs:
         - arm64
     runs-on: windows-latest
     steps:
-     - uses: actions/checkout@v4
-       with:
-         submodules: recursive
-         fetch-depth: 0  # Need full history for tags
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0  # Need full history for tags
     - name: Determine Version
       id: version
       shell: pwsh
